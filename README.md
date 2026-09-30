@@ -71,7 +71,7 @@ GitHub → **Actions → Publicar site → Run workflow**. Em cerca de 2 minutos
 - cada commit na branch `main` publica automaticamente;
 - o botão **Publicar alterações** no painel (`kmbim.com.br/admin`) publica depois de editar conteúdo.
 
-Se o envio FTP falhar com erro de TLS, troque `protocol: ftps` por `protocol: ftp` em `.github/workflows/publicar.yml`.
+Se o envio FTP falhar mesmo assim com erro de TLS, troque `protocol: ftps` por `protocol: ftp` em `.github/workflows/publicar.yml`.
 
 ## Desenvolvimento local
 

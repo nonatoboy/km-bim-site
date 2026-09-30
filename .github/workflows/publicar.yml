@@ -55,5 +55,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
+          # O certificado FTP da Hostinger é emitido para o servidor dela, não para o domínio:
+          # mantém a conexão criptografada sem exigir que o nome confira.
+          security: loose
           local-dir: ./dist/
           server-dir: ${{ secrets.FTP_SERVER_DIR || './public_html/' }}
