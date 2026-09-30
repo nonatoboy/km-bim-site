@@ -47,11 +47,22 @@ jobs:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
+      # Aceita o endereço como a Hostinger mostra (ex.: ftp://123.45.67.89/) e remove espaços.
+      - name: Preparar endereço FTP
+        if: steps.segredos.outputs.ok == 'true'
+        id: ftp
+        env:
+          BRUTO: ${{ secrets.FTP_SERVER }}
+        run: |
+          HOST=$(printf '%s' "$BRUTO" | tr -d '[:space:]' | sed -E 's#^[a-zA-Z]+://##; s#/.*$##; s#:[0-9]+$##')
+          echo "::add-mask::$HOST"
+          echo "host=$HOST" >> "$GITHUB_OUTPUT"
+
       - name: Enviar para a Hostinger (FTP)
         if: steps.segredos.outputs.ok == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.ftp.outputs.host }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
