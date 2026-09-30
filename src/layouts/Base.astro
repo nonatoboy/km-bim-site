@@ -1,0 +1,129 @@
+---
+import '@fontsource/saira/600.css';
+import '@fontsource/saira/700.css';
+import '@fontsource/saira/800.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '../styles/global.css';
+import Logo from '../components/Logo.astro';
+import { carregarConteudo } from '../lib/conteudo';
+
+interface Props { titulo?: string; descricao?: string; semIndexar?: boolean }
+const { titulo, descricao, semIndexar = false } = Astro.props;
+const { configuracoes: cfg } = await carregarConteudo();
+const tituloPagina = titulo ? `${titulo} · KM BIM Consultoria` : `KM BIM Consultoria · ${cfg.tagline}`;
+const descricaoPagina = descricao ?? cfg.home_subtitulo;
+const canonica = new URL(Astro.url.pathname, Astro.site);
+const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
+const menu = [
+  { href: '/solucoes', rotulo: 'Soluções' },
+  { href: '/quem-somos', rotulo: 'Quem somos' },
+];
+const ano = new Date().getFullYear();
+---
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{tituloPagina}</title>
+  <meta name="description" content={descricaoPagina} />
+  <link rel="canonical" href={canonica} />
+  {semIndexar && <meta name="robots" content="noindex, nofollow" />}
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#1C2A31" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:site_name" content="KM BIM Consultoria" />
+  <meta property="og:title" content={tituloPagina} />
+  <meta property="og:description" content={descricaoPagina} />
+  <meta property="og:url" content={canonica} />
+  <meta property="og:image" content={new URL('/img/og-kmbim.png', Astro.site)} />
+  <slot name="head" />
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo">
+    <div class="container topo__linha">
+      <a href="/" class="topo__marca" aria-label="KM BIM Consultoria, página inicial"><Logo altura={50} /></a>
+      <button class="topo__menu-botao" type="button" aria-expanded="false" aria-controls="menu-principal">Menu</button>
+      <nav id="menu-principal" class="topo__nav" aria-label="Principal">
+        {menu.map((m) => (
+          <a href={m.href} aria-current={caminho.startsWith(m.href) ? 'page' : undefined}>{m.rotulo}</a>
+        ))}
+        <a class="botao botao--cta topo__cta" href="/orcamento">
+          Solicitar orçamento
+          <span class="contador" data-carrinho-contador hidden>0</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo"><slot /></main>
+
+  <footer class="rodape">
+    <div class="container rodape__grade">
+      <div class="rodape__marca">
+        <Logo variante="negativo" altura={40} />
+        <p>{cfg.tagline}</p>
+      </div>
+      <nav aria-label="Rodapé" class="rodape__links">
+        <a href="/solucoes">Soluções</a>
+        <a href="/quem-somos">Quem somos</a>
+        <a href="/orcamento">Solicitar orçamento</a>
+        {cfg.linkedin_url && <a href={cfg.linkedin_url} rel="noopener" target="_blank">LinkedIn do sócio</a>}
+      </nav>
+      <p class="rodape__legal">
+        © {ano} KM Consultoria BIM Ltda.{cfg.cnpj && <> · CNPJ {cfg.cnpj}</>}
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    import { iniciarCarrinho } from '../scripts/carrinho';
+    iniciarCarrinho();
+    const botao = document.querySelector<HTMLButtonElement>('.topo__menu-botao');
+    botao?.addEventListener('click', () => {
+      const aberto = botao.getAttribute('aria-expanded') === 'true';
+      botao.setAttribute('aria-expanded', String(!aberto));
+      document.getElementById('menu-principal')?.classList.toggle('aberto', !aberto);
+    });
+  </script>
+</body>
+</html>
+
+<style>
+  .pular { position: absolute; left: -9999px; top: 8px; z-index: 20; background: var(--km-ambar); color: var(--km-grafite); padding: 8px 12px; }
+  .pular:focus { left: 8px; }
+  .topo { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, .96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  .topo__linha { display: flex; align-items: center; gap: 24px; min-height: 72px; }
+  .topo__marca { margin-right: auto; display: flex; }
+  .topo__nav { display: flex; align-items: center; gap: 28px; }
+  .topo__nav > a:not(.botao) { color: var(--fg); text-decoration: none; font-weight: 500; }
+  .topo__nav > a:not(.botao):hover, .topo__nav > a[aria-current="page"] { color: var(--accent); }
+  .topo__nav > a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-decoration-color: var(--km-ambar); }
+  .topo__cta { min-height: 42px; padding: 8px 16px; }
+  .contador { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding-inline: 6px; border-radius: 999px; background: var(--km-grafite); color: #fff; font: 600 0.75rem/1 var(--f-mono); }
+  .contador[hidden] { display: none; }
+  .topo__menu-botao { display: none; }
+  @media (max-width: 760px) {
+    .topo__linha { flex-wrap: wrap; gap: 12px; padding-block: 10px; }
+    .topo__menu-botao { display: inline-flex; min-height: 42px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--raio); background: #fff; font: 500 0.95rem var(--f-body); color: var(--fg); }
+    .topo__nav { display: none; width: 100%; flex-direction: column; align-items: stretch; gap: 4px; padding-bottom: 8px; }
+    .topo__nav.aberto { display: flex; }
+    .topo__nav > a:not(.botao) { padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  }
+  .rodape { background: var(--km-grafite); color: #A9BBC1; padding-block: 48px 32px; font-size: 0.95rem; }
+  .rodape__grade { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px 48px; }
+  .rodape__marca { display: grid; gap: 14px; justify-items: start; }
+  .rodape__marca p { font: 600 1.1rem var(--f-display); color: var(--km-nevoa); }
+  .rodape__links { display: grid; gap: 8px; align-content: start; }
+  .rodape__links a { color: var(--km-nevoa); text-decoration: none; }
+  .rodape__links a:hover { color: var(--km-ambar); }
+  .rodape__legal { grid-column: 1 / -1; border-top: 1px solid #2E3E46; padding-top: 20px; font-size: 0.85rem; }
+  @media (max-width: 640px) { .rodape__grade { grid-template-columns: 1fr; } }
+</style>

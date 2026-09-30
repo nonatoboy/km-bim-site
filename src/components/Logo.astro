@@ -1,0 +1,5 @@
+---
+interface Props { variante?: 'positivo' | 'negativo'; altura?: number }
+const { variante = 'positivo', altura = 44 } = Astro.props;
+---
+<img src={`/img/km-bim-horizontal-${variante}.svg`} alt="KM BIM Consultoria" height={altura} width={Math.round(altura * 3.4)} style={`height:${altura}px;width:auto`} />

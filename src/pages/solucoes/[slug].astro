@@ -1,0 +1,85 @@
+---
+import Base from '../../layouts/Base.astro';
+import BarraSelecao from '../../components/BarraSelecao.astro';
+import { carregarConteudo } from '../../lib/conteudo';
+import { rotuloModalidade, type Solucao } from '../../lib/tipos';
+
+export async function getStaticPaths() {
+  const { solucoes } = await carregarConteudo();
+  return solucoes.map((s) => ({ params: { slug: s.slug }, props: { solucao: s } }));
+}
+
+const { solucao: s } = Astro.props as { solucao: Solucao };
+const { categorias, solucoes, parceiros } = await carregarConteudo();
+const categoria = categorias.find((c) => c.slug === s.categoria);
+const relacionadas = solucoes.filter((o) => o.categoria === s.categoria && o.slug !== s.slug);
+const parceirosDaSolucao = parceiros.filter((p) => p.solucoes?.includes(s.slug));
+---
+<Base titulo={s.titulo} descricao={s.resumo}>
+  <article class="secao">
+    <div class="container detalhe">
+      <div class="detalhe__principal">
+        <nav class="migalhas" aria-label="Você está em"><a href="/solucoes">Soluções</a> / {categoria && <a href={`/solucoes#${categoria.slug}`}>{categoria.nome}</a>}</nav>
+        <span class={`selo selo--${s.modalidade}`}>{rotuloModalidade[s.modalidade]}</span>
+        <h1>{s.titulo}</h1>
+        <p class="lead">{s.resumo}</p>
+        <p class="texto">{s.descricao}</p>
+        {s.publico && (
+          <div class="bloco">
+            <h2>Para quem é</h2>
+            <p class="texto">{s.publico}</p>
+          </div>
+        )}
+        {parceirosDaSolucao.length > 0 && (
+          <div class="bloco">
+            <h2>Parceiros nesta solução</h2>
+            <p class="texto">{parceirosDaSolucao.map((p) => p.nome).join(', ')}</p>
+          </div>
+        )}
+      </div>
+      <aside class="detalhe__lateral">
+        {s.entregaveis.length > 0 && (
+          <>
+            <h2>Entregáveis</h2>
+            <ul>{s.entregaveis.map((e) => <li>{e}</li>)}</ul>
+          </>
+        )}
+        <button type="button" class="botao botao--primario selecionar" data-selecionar={s.slug} aria-pressed="false">
+          <span data-rotulo>Incluir no orçamento</span>
+        </button>
+        <a class="botao botao--cta" href="/orcamento">Ir para o orçamento</a>
+      </aside>
+    </div>
+  </article>
+
+  {relacionadas.length > 0 && (
+    <section class="secao secao--alt">
+      <div class="container">
+        <h2 class="relacionadas__titulo">Outras soluções em {categoria?.nome}</h2>
+        <ul class="relacionadas">
+          {relacionadas.map((r) => <li><a href={`/solucoes/${r.slug}`}><strong>{r.titulo}</strong><span>{r.resumo}</span></a></li>)}
+        </ul>
+      </div>
+    </section>
+  )}
+  <BarraSelecao />
+</Base>
+
+<style>
+  .detalhe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: clamp(28px, 5vw, 64px); align-items: start; }
+  .detalhe__principal { display: grid; gap: 18px; justify-items: start; }
+  .migalhas { font-size: 0.9rem; color: var(--muted); }
+  .lead { font-size: 1.25rem; color: var(--muted); max-width: 60ch; }
+  .bloco { display: grid; gap: 8px; padding-top: 8px; }
+  .bloco h2, .detalhe__lateral h2 { font-size: 1.2rem; }
+  .detalhe__lateral { position: sticky; top: 96px; display: grid; gap: 14px; padding: 24px; background: var(--bg-alt); border-radius: var(--raio); }
+  .detalhe__lateral ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .detalhe__lateral li::marker { color: var(--km-ambar); }
+  .selecionar[aria-pressed="true"] { background: #E1EEF0; color: var(--accent); border-color: var(--accent); }
+  @media (max-width: 860px) { .detalhe { grid-template-columns: 1fr; } .detalhe__lateral { position: static; } }
+  .relacionadas__titulo { font-size: 1.4rem; margin-bottom: 20px; }
+  .relacionadas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .relacionadas a { display: grid; gap: 4px; padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); text-decoration: none; color: var(--fg); height: 100%; }
+  .relacionadas a:hover { border-color: var(--accent); }
+  .relacionadas span { color: var(--muted); font-size: 0.95rem; }
+</style>

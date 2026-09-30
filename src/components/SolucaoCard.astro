@@ -1,0 +1,36 @@
+---
+import { rotuloModalidade, type Solucao } from '../lib/tipos';
+interface Props { solucao: Solucao; categoria?: string }
+const { solucao: s, categoria } = Astro.props;
+---
+<article class="card">
+  <div class="card__topo">
+    {categoria && <span class="rotulo">{categoria}</span>}
+    <span class={`selo selo--${s.modalidade}`}>{rotuloModalidade[s.modalidade]}</span>
+  </div>
+  <h3><a href={`/solucoes/${s.slug}`}>{s.titulo}</a></h3>
+  <p>{s.resumo}</p>
+  <div class="card__acoes">
+    <button type="button" class="card__selecionar" data-selecionar={s.slug} aria-pressed="false">
+      <span class="card__marca" aria-hidden="true"></span><span data-rotulo>Incluir no orçamento</span>
+    </button>
+    <a href={`/solucoes/${s.slug}`} class="card__mais" aria-label={`Detalhes de ${s.titulo}`}>Detalhes →</a>
+  </div>
+</article>
+
+<style>
+  .card { display: grid; grid-template-rows: auto auto 1fr auto; gap: 12px; padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); min-width: 0; }
+  .card__topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 24px; }
+  .card h3 { font-size: 1.2rem; }
+  .card h3 a { color: var(--fg); text-decoration: none; }
+  .card h3 a:hover { color: var(--accent); }
+  .card p { color: var(--muted); font-size: 0.98rem; }
+  .card__acoes { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line); }
+  .card__selecionar { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; padding: 6px 12px 6px 8px; border: 1px solid var(--line); border-radius: var(--raio); background: #fff; font: 500 0.92rem var(--f-body); color: var(--fg); cursor: pointer; }
+  .card__selecionar:hover { border-color: var(--accent); }
+  .card__marca { width: 20px; height: 20px; border: 2px solid var(--muted); border-radius: 4px; display: grid; place-items: center; flex: none; }
+  .card__selecionar[aria-pressed="true"] { background: #E1EEF0; border-color: var(--accent); color: var(--accent); }
+  .card__selecionar[aria-pressed="true"] .card__marca { background: var(--accent); border-color: var(--accent); }
+  .card__selecionar[aria-pressed="true"] .card__marca::after { content: ""; width: 10px; height: 6px; border: solid #fff; border-width: 0 0 2px 2px; transform: rotate(-45deg) translate(1px, -1px); }
+  .card__mais { font-weight: 600; font-size: 0.92rem; text-decoration: none; }
+</style>

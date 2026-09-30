@@ -1,0 +1,59 @@
+name: Publicar site
+
+on:
+  push:
+    branches: [main]
+  # Botão "Publicar alterações" do painel (via Edge Function do Supabase)
+  repository_dispatch:
+    types: [publicar]
+  # Execução manual pela aba Actions do GitHub
+  workflow_dispatch:
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Sem o banco, o build usaria o conteúdo inicial do repositório e ignoraria o painel.
+      - name: Conferir segredos
+        id: segredos
+        env:
+          URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          FTP: ${{ secrets.FTP_SERVER }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$FTP" ]; then
+            echo "::warning::Publicação ignorada: configure os segredos do repositório (README, passo 4)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Gerar site com o conteúdo do Supabase
+        if: steps.segredos.outputs.ok == 'true'
+        run: npm run build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Enviar para a Hostinger (FTP)
+        if: steps.segredos.outputs.ok == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR || './public_html/' }}

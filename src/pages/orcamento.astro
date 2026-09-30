@@ -1,0 +1,178 @@
+---
+import Base from '../layouts/Base.astro';
+import { carregarConteudo } from '../lib/conteudo';
+
+const { configuracoes: cfg, categorias, solucoes } = await carregarConteudo();
+const grupos = categorias
+  .map((c) => ({ ...c, itens: solucoes.filter((s) => s.categoria === c.slug) }))
+  .filter((g) => g.itens.length > 0);
+
+const segmentos = ['Construtora', 'Incorporadora', 'Escritório de arquitetura ou projetos', 'Concessionária ou infraestrutura', 'Órgão público', 'Gestão de ativos e facilities', 'Outro'];
+const portes = ['Até 9 pessoas', '10 a 49 pessoas', '50 a 249 pessoas', '250 pessoas ou mais'];
+const fases = ['Estruturação da empresa (sem projeto específico)', 'Estudo ou viabilidade', 'Projeto', 'Obra', 'Operação e manutenção'];
+---
+<Base titulo="Solicitar orçamento" descricao="Escolha as soluções BIM de interesse e envie seu pedido de orçamento para a KM BIM.">
+  <section class="secao">
+    <div class="container">
+      <div class="secao__cabeca">
+        <span class="rotulo">Orçamento</span>
+        <h1>Solicitar orçamento</h1>
+        <p>Marque as soluções de interesse e conte um pouco sobre sua empresa. Respondemos por e-mail com os próximos passos.</p>
+      </div>
+
+      <form id="form-orcamento" class="form" novalidate>
+        <fieldset class="bloco">
+          <legend><span class="passo">1</span> Soluções de interesse</legend>
+          <div class="solucoes">
+            {grupos.map((g) => (
+              <div class="solucoes__grupo">
+                <h2>{g.nome}</h2>
+                {g.itens.map((s) => (
+                  <label class="opcao">
+                    <input type="checkbox" name="solucoes" value={s.slug} data-titulo={s.titulo} />
+                    <span><strong>{s.titulo}</strong><small>{s.resumo}</small></span>
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p class="erro" id="erro-solucoes" hidden>Escolha ao menos uma solução ou descreva sua necessidade na mensagem.</p>
+        </fieldset>
+
+        <fieldset class="bloco">
+          <legend><span class="passo">2</span> Sobre você e sua empresa</legend>
+          <div class="campos">
+            <label class="campo"><span>Nome *</span><input id="nome" name="nome" required maxlength="120" autocomplete="name" /></label>
+            <label class="campo"><span>Empresa *</span><input id="empresa" name="empresa" required maxlength="160" autocomplete="organization" /></label>
+            <label class="campo"><span>E-mail corporativo *</span><input id="email" name="email" type="email" required maxlength="200" autocomplete="email" /></label>
+            <label class="campo"><span>Telefone</span><input id="telefone" name="telefone" type="tel" maxlength="40" autocomplete="tel" /></label>
+            <label class="campo"><span>Segmento</span>
+              <select id="segmento" name="segmento"><option value="">Selecione</option>{segmentos.map((s) => <option>{s}</option>)}</select>
+            </label>
+            <label class="campo"><span>Porte</span>
+              <select id="porte" name="porte"><option value="">Selecione</option>{portes.map((s) => <option>{s}</option>)}</select>
+            </label>
+            <label class="campo"><span>Cidade / UF</span><input id="cidade_uf" name="cidade_uf" maxlength="120" autocomplete="address-level2" /></label>
+            <label class="campo"><span>Fase do empreendimento</span>
+              <select id="fase" name="fase"><option value="">Selecione</option>{fases.map((s) => <option>{s}</option>)}</select>
+            </label>
+            <label class="campo campo--largo"><span>Conte seu desafio</span><textarea id="mensagem" name="mensagem" rows="5" maxlength="4000" placeholder="Ex.: somos uma construtora com 4 obras em andamento e queremos padronizar a compatibilização dos projetos que recebemos."></textarea></label>
+            <label class="isca" aria-hidden="true">Site<input id="site" name="site" tabindex="-1" autocomplete="off" /></label>
+          </div>
+        </fieldset>
+
+        <div class="envio">
+          <label class="consentimento">
+            <input type="checkbox" id="consentimento" name="consentimento" required />
+            <span>Concordo com o uso dos meus dados para esta solicitação. <small>{cfg.aviso_privacidade}</small></span>
+          </label>
+          <p class="erro" id="erro-geral" role="alert" hidden></p>
+          <button class="botao botao--cta" type="submit">Enviar pedido de orçamento</button>
+        </div>
+      </form>
+
+      <div id="sucesso" class="sucesso" hidden tabindex="-1">
+        <span class="rotulo">Pedido recebido</span>
+        <h2>Obrigado! Seu pedido foi enviado.</h2>
+        <p>Vamos analisar as soluções escolhidas e responder no e-mail informado.</p>
+        <a class="botao botao--primario" href="/solucoes">Voltar às soluções</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { supabase, supabaseConfigurado } from '../lib/supabase';
+  import { lerSelecao, gravarSelecao } from '../scripts/carrinho';
+
+  const form = document.getElementById('form-orcamento') as HTMLFormElement;
+  const caixas = [...form.querySelectorAll<HTMLInputElement>('input[name="solucoes"]')];
+  const erroSolucoes = document.getElementById('erro-solucoes')!;
+  const erroGeral = document.getElementById('erro-geral')!;
+  const botao = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+  const sel = lerSelecao();
+  caixas.forEach((c) => { c.checked = sel.includes(c.value); });
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLInputElement).name === 'solucoes') {
+      gravarSelecao(caixas.filter((c) => c.checked).map((c) => c.value));
+      erroSolucoes.hidden = true;
+    }
+  });
+
+  const valor = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
+  const mostrarErro = (msg: string) => { erroGeral.textContent = msg; erroGeral.hidden = false; };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    erroGeral.hidden = true;
+    const escolhidas = caixas.filter((c) => c.checked).map((c) => ({ slug: c.value, titulo: c.dataset.titulo }));
+
+    if (escolhidas.length === 0 && !valor('mensagem')) {
+      erroSolucoes.hidden = false;
+      erroSolucoes.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    // Campo isca: robôs preenchem, pessoas não veem.
+    if (valor('site')) return;
+    if (!supabaseConfigurado) {
+      mostrarErro('O formulário ainda não está conectado ao banco de dados. Tente novamente mais tarde.');
+      return;
+    }
+
+    botao.disabled = true;
+    botao.textContent = 'Enviando…';
+    const { error } = await supabase().from('pedidos_orcamento').insert({
+      nome: valor('nome'), empresa: valor('empresa'), email: valor('email'), telefone: valor('telefone'),
+      segmento: valor('segmento'), porte: valor('porte'), cidade_uf: valor('cidade_uf'), fase: valor('fase'),
+      mensagem: valor('mensagem'), solucoes: escolhidas, consentimento: true,
+    });
+    botao.disabled = false;
+    botao.textContent = 'Enviar pedido de orçamento';
+
+    if (error) {
+      console.error(error);
+      mostrarErro('Não foi possível enviar agora. Confira o e-mail informado e tente de novo em alguns minutos.');
+      return;
+    }
+    gravarSelecao([]);
+    form.hidden = true;
+    const ok = document.getElementById('sucesso')!;
+    ok.hidden = false;
+    ok.focus();
+    ok.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>
+
+<style>
+  .form { display: grid; gap: 28px; }
+  .bloco { border: 1px solid var(--line); border-radius: var(--raio); padding: clamp(18px, 3vw, 28px); margin: 0; min-width: 0; }
+  legend { font: 700 1.3rem var(--f-display); padding-inline: 8px; display: flex; align-items: center; gap: 10px; }
+  .passo { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--km-grafite); color: var(--km-ambar); font-size: 1rem; }
+  .solucoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px 32px; margin-top: 8px; }
+  .solucoes__grupo { display: grid; gap: 8px; align-content: start; }
+  .solucoes__grupo h2 { font: 500 0.8rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .opcao { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding: 12px; border: 1px solid var(--line); border-radius: var(--raio); cursor: pointer; }
+  .opcao:has(input:checked) { border-color: var(--accent); background: #F1F8F9; }
+  .opcao input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--km-petroleo); }
+  .opcao span { display: grid; gap: 2px; }
+  .opcao small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+  .campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; margin-top: 8px; }
+  .campo { display: grid; gap: 6px; font-weight: 500; font-size: 0.95rem; }
+  .campo--largo { grid-column: 1 / -1; }
+  .campo input, .campo select, .campo textarea { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #B8C6CA; border-radius: 6px; font: 400 1rem var(--f-body); color: var(--fg); background: #fff; }
+  .campo textarea { resize: vertical; }
+  .campo input:focus, .campo select:focus, .campo textarea:focus { outline: 2px solid var(--km-ciano); outline-offset: 0; border-color: var(--km-ciano); }
+  @media (max-width: 640px) { .campos { grid-template-columns: 1fr; } }
+  .isca { position: absolute; left: -9999px; }
+  .envio { display: grid; gap: 16px; justify-items: start; }
+  .consentimento { display: grid; grid-template-columns: auto 1fr; gap: 12px; max-width: 760px; }
+  .consentimento input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--km-petroleo); }
+  .consentimento small { display: block; color: var(--muted); font-size: 0.88rem; margin-top: 4px; }
+  .erro { color: var(--erro); font-weight: 500; }
+  .sucesso { display: grid; gap: 14px; justify-items: start; padding: 32px; border-radius: var(--raio); background: var(--bg-alt); border-left: 4px solid var(--ok); }
+</style>

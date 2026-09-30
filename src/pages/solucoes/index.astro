@@ -1,0 +1,51 @@
+---
+import Base from '../../layouts/Base.astro';
+import SolucaoCard from '../../components/SolucaoCard.astro';
+import BarraSelecao from '../../components/BarraSelecao.astro';
+import { carregarConteudo } from '../../lib/conteudo';
+
+const { categorias, solucoes } = await carregarConteudo();
+const grupos = categorias
+  .map((c) => ({ ...c, itens: solucoes.filter((s) => s.categoria === c.slug) }))
+  .filter((g) => g.itens.length > 0);
+---
+<Base titulo="Soluções" descricao="Catálogo de soluções BIM da KM BIM: estratégia, projeto, obra, dados e capacitação para empresas de arquitetura, engenharia e construção.">
+  <section class="secao cabeca">
+    <div class="container secao__cabeca">
+      <span class="rotulo">Catálogo</span>
+      <h1>Soluções</h1>
+      <p>Escolha uma ou mais soluções e envie um único pedido de orçamento. As marcadas como "Com parceiro" são executadas por parceiros qualificados, com coordenação técnica da KM BIM.</p>
+    </div>
+    <nav class="container atalhos" aria-label="Etapas">
+      {grupos.map((g) => <a href={`#${g.slug}`}>{g.nome}</a>)}
+    </nav>
+  </section>
+
+  {grupos.map((g, i) => (
+    <section id={g.slug} class:list={['secao', 'grupo', { 'secao--alt': i % 2 === 0 }]}>
+      <div class="container">
+        <header class="grupo__cabeca">
+          <span class="rotulo">Etapa {i + 1}</span>
+          <h2>{g.nome}</h2>
+          <p class="muted">{g.descricao}</p>
+        </header>
+        <div class="grade-cards">
+          {g.itens.map((s) => <SolucaoCard solucao={s} />)}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <BarraSelecao />
+</Base>
+
+<style>
+  .cabeca { padding-bottom: 32px; }
+  .cabeca .secao__cabeca { margin-bottom: 24px; }
+  .atalhos { display: flex; gap: 8px; flex-wrap: wrap; }
+  .atalhos a { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); text-decoration: none; font-weight: 500; font-size: 0.95rem; }
+  .atalhos a:hover { border-color: var(--accent); color: var(--accent); }
+  .grupo { scroll-margin-top: 72px; padding-block: 56px; }
+  .grupo__cabeca { display: grid; gap: 6px; margin-bottom: 24px; }
+  .grade-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+</style>

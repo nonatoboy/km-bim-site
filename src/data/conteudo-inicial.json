@@ -1,0 +1,309 @@
+{
+  "configuracoes": {
+    "tagline": "Conhecimento que constrói.",
+    "home_titulo": "Consultoria BIM para quem constrói com precisão",
+    "home_subtitulo": "Digitalizamos processos de projeto, planejamento e obra em empresas de arquitetura, engenharia e construção de pequeno e médio porte, com soluções sob medida e mais de 30 anos de experiência de canteiro, sistemas e BIM.",
+    "sobre_empresa": "A KM BIM nasceu para levar a pequenas e médias empresas da cadeia AEC a mesma maturidade digital que grandes construtoras levaram anos para construir. Atuamos do diagnóstico à operação assistida, com método, normas (ABNT/ISO 19650) e foco em resultado de obra. Quando o escopo pede execução em escala, como modelagem ou captura da realidade, trabalhamos com parceiros selecionados, sempre sob a coordenação técnica da KM BIM.",
+    "socio_nome": "Marcelo Nonato Santos",
+    "socio_cargo": "Sócio proprietário",
+    "socio_bio": "Engenheiro civil pela Escola Politécnica da USP, com mais de 30 anos entre canteiro, planejamento, custos, sistemas e construção virtual. Liderou a implantação de BIM e de sistemas corporativos em uma das maiores construtoras do país e estruturou áreas de serviços BIM, inovação e gestão do conhecimento em consultoria de tecnologia. Na KM BIM, leva essa experiência a empresas de pequeno e médio porte, com soluções sob medida.",
+    "socio_foto": "/img/marcelo-nonato-santos.jpg",
+    "linkedin_url": "https://www.linkedin.com/in/marcelo-nonato-santos",
+    "cnpj": "",
+    "aviso_privacidade": "Os dados informados serão usados somente para analisar sua solicitação e entrar em contato sobre a proposta. Não compartilhamos seus dados com terceiros e você pode pedir a exclusão a qualquer momento."
+  },
+  "categorias": [
+    {
+      "slug": "estrategia",
+      "nome": "Estratégia",
+      "descricao": "Decidir e estruturar a adoção do BIM.",
+      "ordem": 1
+    },
+    {
+      "slug": "projeto",
+      "nome": "Projeto",
+      "descricao": "Modelar, coordenar e compatibilizar.",
+      "ordem": 2
+    },
+    {
+      "slug": "obra",
+      "nome": "Obra",
+      "descricao": "Planejar, orçar e controlar a produção.",
+      "ordem": 3
+    },
+    {
+      "slug": "dados",
+      "nome": "Dados",
+      "descricao": "Integrar sistemas e apoiar decisões.",
+      "ordem": 4
+    },
+    {
+      "slug": "pessoas",
+      "nome": "Pessoas",
+      "descricao": "Capacitar equipes para operar o novo processo.",
+      "ordem": 5
+    }
+  ],
+  "solucoes": [
+    {
+      "slug": "diagnostico-maturidade-bim",
+      "titulo": "Diagnóstico de maturidade BIM",
+      "resumo": "Mapeamento de processos, pessoas e ferramentas, com plano de evolução priorizado.",
+      "descricao": "Avaliamos como sua empresa produz, troca e controla informação hoje: processos de projeto e obra, papéis, ferramentas, padrões e contratos. O resultado é um retrato claro do nível de maturidade e um plano de evolução com metas de 6, 12 e 24 meses, investimentos estimados e ganhos esperados.",
+      "entregaveis": [
+        "Relatório de maturidade por dimensão",
+        "Mapa dos processos atuais",
+        "Plano de evolução priorizado (6, 12 e 24 meses)",
+        "Apresentação executiva para a diretoria"
+      ],
+      "publico": "Empresas que querem começar ou retomar a adoção do BIM com clareza de prioridades.",
+      "categoria": "estrategia",
+      "modalidade": "propria",
+      "destaque": true,
+      "ordem": 1
+    },
+    {
+      "slug": "implantacao-bim-iso-19650",
+      "titulo": "Implantação BIM conforme ISO 19650",
+      "resumo": "Requisitos de informação, Plano de Execução BIM, padrões e fluxos Open BIM.",
+      "descricao": "Estruturamos a gestão da informação segundo a série ABNT NBR ISO 19650: requisitos de informação da organização, do ativo e de troca (OIR, AIR, EIR), Plano de Execução BIM (BEP), nomenclatura, templates e fluxos Open BIM baseados em IFC. Acompanhamos o primeiro projeto piloto até a operação estável.",
+      "entregaveis": [
+        "OIR, AIR e EIR",
+        "Plano de Execução BIM (BEP)",
+        "Padrões de nomenclatura e templates",
+        "Acompanhamento do projeto piloto"
+      ],
+      "publico": "Construtoras, incorporadoras e projetistas que precisam padronizar entregas e contratar BIM com segurança.",
+      "categoria": "estrategia",
+      "modalidade": "propria",
+      "destaque": true,
+      "ordem": 2
+    },
+    {
+      "slug": "cde-governanca-informacao",
+      "titulo": "Ambiente comum de dados (CDE) e governança",
+      "resumo": "Estruturação do CDE, estados da informação, permissões e rotinas de aprovação.",
+      "descricao": "Configuramos o ambiente comum de dados do seu projeto ou da empresa: estrutura de pastas e contêineres, estados da informação (em andamento, compartilhado, publicado, arquivado), permissões, fluxos de revisão e aprovação. Incluímos auditorias periódicas de aderência para manter a governança viva.",
+      "entregaveis": [
+        "Estrutura do CDE configurada",
+        "Matriz de papéis e permissões",
+        "Fluxos de aprovação documentados",
+        "Roteiro de auditoria de aderência"
+      ],
+      "publico": "Empresas com muitos projetistas e versões circulando por e-mail ou pastas soltas.",
+      "categoria": "estrategia",
+      "modalidade": "propria",
+      "destaque": false,
+      "ordem": 3
+    },
+    {
+      "slug": "coordenacao-compatibilizacao",
+      "titulo": "Coordenação e compatibilização multidisciplinar",
+      "resumo": "Detecção de interferências, reuniões de coordenação e controle de pendências.",
+      "descricao": "Federamos os modelos das disciplinas, executamos a detecção de interferências com regras por fase de projeto e conduzimos reuniões de coordenação com registro e acompanhamento das pendências até a solução. O objetivo é chegar à obra com o projeto resolvido.",
+      "entregaveis": [
+        "Modelo federado",
+        "Relatórios de interferências por rodada",
+        "Atas e lista de pendências",
+        "Indicadores de evolução da compatibilização"
+      ],
+      "publico": "Incorporadoras e construtoras que recebem projetos de vários escritórios.",
+      "categoria": "projeto",
+      "modalidade": "propria",
+      "destaque": true,
+      "ordem": 1
+    },
+    {
+      "slug": "modelagem-bim-acervo-2d",
+      "titulo": "Modelagem BIM e conversão de acervo 2D",
+      "resumo": "Modelos paramétricos a partir de projetos 2D, com controle de qualidade KM BIM.",
+      "descricao": "Convertemos projetos em 2D em modelos BIM paramétricos, com nível de informação definido para o uso pretendido: quantitativos, planejamento, operação ou manutenção. A produção é feita por parceiros qualificados, com fluxo padronizado e controle de qualidade da KM BIM.",
+      "entregaveis": [
+        "Modelos BIM por disciplina",
+        "Relatório de verificação de qualidade",
+        "Arquivos nativos e IFC"
+      ],
+      "publico": "Empresas que precisam do modelo mas não têm equipe de modelagem.",
+      "categoria": "projeto",
+      "modalidade": "parceiro",
+      "destaque": false,
+      "ordem": 2
+    },
+    {
+      "slug": "captura-da-realidade",
+      "titulo": "Captura da realidade",
+      "resumo": "Laser scanning, fotogrametria com drone e Scan-to-BIM.",
+      "descricao": "Levantamos a condição real de edificações, terrenos e obras com laser scanning e fotogrametria, e transformamos as nuvens de pontos em modelos BIM ou em comparativos com o projeto. Aplicações típicas: retrofit, as built, medição de avanço e controle de volumes.",
+      "entregaveis": [
+        "Nuvem de pontos registrada",
+        "Ortomosaicos e modelos de superfície",
+        "Modelo Scan-to-BIM",
+        "Relatório projeto × executado"
+      ],
+      "publico": "Retrofit, reformas, infraestrutura e acompanhamento de obras.",
+      "categoria": "projeto",
+      "modalidade": "parceiro",
+      "destaque": true,
+      "ordem": 3
+    },
+    {
+      "slug": "planejamento-4d-quantitativos-5d",
+      "titulo": "Planejamento 4D e quantitativos 5D",
+      "resumo": "Modelo vinculado ao cronograma e ao orçamento para simular e quantificar.",
+      "descricao": "Vinculamos o modelo BIM ao cronograma e à estrutura de custos. Com isso a equipe simula fases de obra, avalia construtibilidade, identifica conflitos de sequência e extrai quantitativos rastreáveis para orçamento e compras.",
+      "entregaveis": [
+        "Simulação 4D por etapa",
+        "Quantitativos extraídos do modelo",
+        "Relatório de construtibilidade",
+        "Vínculo EAP × modelo documentado"
+      ],
+      "publico": "Construtoras que querem orçar e planejar com mais precisão.",
+      "categoria": "obra",
+      "modalidade": "propria",
+      "destaque": true,
+      "ordem": 1
+    },
+    {
+      "slug": "controle-digital-de-obras",
+      "titulo": "Controle digital de obras",
+      "resumo": "EAP, estrutura de custos, avanço físico e apropriação integrados ao modelo.",
+      "descricao": "Estruturamos a EAP e a estrutura analítica de custos (CBS), os critérios de medição de avanço físico e a apropriação de mão de obra e equipamentos, conectando campo, planejamento e modelo. Resultado: curvas de avanço confiáveis e decisões tomadas com dados da semana, não do mês passado.",
+      "entregaveis": [
+        "EAP e CBS padronizadas",
+        "Critérios de medição de avanço",
+        "Rotina de apropriação em campo",
+        "Curvas e relatórios de avanço"
+      ],
+      "publico": "Construtoras com várias obras e controles em planilhas desconectadas.",
+      "categoria": "obra",
+      "modalidade": "propria",
+      "destaque": false,
+      "ordem": 2
+    },
+    {
+      "slug": "integracao-dados-paineis",
+      "titulo": "Integração de dados e painéis de gestão",
+      "resumo": "Power BI, Power Apps e integração do BIM com os sistemas da empresa.",
+      "descricao": "Conectamos o modelo e o ambiente comum de dados aos sistemas que a empresa já usa, como orçamento, planejamento e ERP, e construímos painéis Power BI e aplicativos Power Apps para coleta em campo. A experiência em implantação de sistemas corporativos garante integrações estáveis e dados confiáveis.",
+      "entregaveis": [
+        "Painéis de indicadores de projeto e obra",
+        "Aplicativos de coleta em campo",
+        "Mapa de integrações entre sistemas",
+        "Rotinas de atualização e qualidade de dados"
+      ],
+      "publico": "Empresas que já produzem dados, mas não conseguem usá-los para decidir.",
+      "categoria": "dados",
+      "modalidade": "propria",
+      "destaque": true,
+      "ordem": 1
+    },
+    {
+      "slug": "capacitacao-mentoria",
+      "titulo": "Capacitação e mentoria de equipes",
+      "resumo": "Treinamentos sob medida e mentoria na operação assistida.",
+      "descricao": "Treinamentos desenhados para a realidade da sua empresa em BIM, ISO 19650, coordenação e controle de empreendimentos, seguidos de mentoria durante a operação assistida. Ministrados por quem formou equipes de engenharia de obra e de escritório central em grandes construtoras.",
+      "entregaveis": [
+        "Plano de capacitação por perfil",
+        "Turmas presenciais ou on-line",
+        "Material didático",
+        "Mentoria na operação assistida"
+      ],
+      "publico": "Equipes que vão operar o novo processo no dia a dia.",
+      "categoria": "pessoas",
+      "modalidade": "propria",
+      "destaque": false,
+      "ordem": 1
+    }
+  ],
+  "parceiros": [],
+  "palestras": [],
+  "publicacoes": [
+    {
+      "titulo": "Integrating Power BI and BIM 360 Through Forge for Dynamic Construction Analytics",
+      "veiculo": "Artigo técnico",
+      "ano": null,
+      "link": "",
+      "ordem": 1
+    },
+    {
+      "titulo": "Extração estruturada de quantitativos com uso de AutoCAD Civil 3D e Navisworks: aplicação prática",
+      "veiculo": "Trabalho técnico",
+      "ano": null,
+      "link": "",
+      "ordem": 2
+    },
+    {
+      "titulo": "Uso de geoprocessamento no gerenciamento da obra",
+      "veiculo": "Publicação técnica",
+      "ano": null,
+      "link": "",
+      "ordem": 3
+    }
+  ],
+  "reconhecimentos": [
+    {
+      "tipo": "formacao",
+      "titulo": "Engenharia Civil",
+      "descricao": "Escola Politécnica da USP",
+      "ano": "1992",
+      "ordem": 1
+    },
+    {
+      "tipo": "formacao",
+      "titulo": "Pós-graduação em Gestão de Projetos",
+      "descricao": "IETEC",
+      "ano": "",
+      "ordem": 2
+    },
+    {
+      "tipo": "certificacao",
+      "titulo": "buildingSMART Professional Certification · Foundation",
+      "descricao": "buildingSMART International",
+      "ano": "",
+      "ordem": 3
+    },
+    {
+      "tipo": "atuacao",
+      "titulo": "Palestrante em três edições da Autodesk University",
+      "descricao": "Principal congresso de tecnologia aplicada a projeto, construção e manufatura",
+      "ano": "",
+      "ordem": 4
+    },
+    {
+      "tipo": "atuacao",
+      "titulo": "Coordenador da Divisão Técnica de Tecnologias Digitais",
+      "descricao": "Instituto de Engenharia de São Paulo",
+      "ano": "2020–2024",
+      "ordem": 5
+    },
+    {
+      "tipo": "atuacao",
+      "titulo": "Instrutor especialista",
+      "descricao": "BuildLab Academy",
+      "ano": "2022–2026",
+      "ordem": 6
+    },
+    {
+      "tipo": "premio",
+      "titulo": "Prêmio de Inovação Técnica",
+      "descricao": "Sistema de apropriação eletrônica de mão de obra nos canteiros",
+      "ano": "",
+      "ordem": 7
+    },
+    {
+      "tipo": "premio",
+      "titulo": "Prêmio Infra i9",
+      "descricao": "Inovação em processos construtivos e gestão de infraestrutura",
+      "ano": "",
+      "ordem": 8
+    },
+    {
+      "tipo": "premio",
+      "titulo": "Divisão Técnica Mais Atuante do Ano",
+      "descricao": "Instituto de Engenharia, Divisão de Tecnologias Digitais",
+      "ano": "2020",
+      "ordem": 9
+    }
+  ],
+  "depoimentos": []
+}

@@ -1,0 +1,16 @@
+---
+// Barra fixa que aparece quando o visitante escolheu ao menos uma solução.
+---
+<div class="barra" data-barra-selecao hidden>
+  <div class="container barra__linha">
+    <p><strong data-carrinho-contador>0</strong> solução(ões) no seu pedido</p>
+    <a class="botao botao--cta" href="/orcamento">Continuar para o orçamento →</a>
+  </div>
+</div>
+<style>
+  .barra { position: sticky; bottom: 0; z-index: 9; background: var(--km-grafite); color: #fff; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 20px rgba(0, 0, 0, .15); }
+  .barra[hidden] { display: none; }
+  .barra__linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .barra strong { font-family: var(--f-display); font-size: 1.2rem; color: var(--km-ambar); }
+  .barra .botao { min-height: 44px; }
+</style>

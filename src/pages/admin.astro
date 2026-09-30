@@ -1,0 +1,128 @@
+---
+// Painel administrativo. Página estática; os dados vêm do Supabase no navegador, após login.
+import '@fontsource/saira/700.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Painel · KM BIM</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body class="admin">
+  <header class="barra">
+    <img src="/img/km-bim-horizontal-negativo.svg" alt="KM BIM" height="32" style="height:32px;width:auto" />
+    <span class="barra__titulo">Painel</span>
+  </header>
+
+  <section id="login" class="login" hidden>
+    <form id="form-login" class="login__form">
+      <h1>Entrar no painel</h1>
+      <label class="campo"><span>E-mail</span><input id="login-email" type="email" required autocomplete="username" /></label>
+      <label class="campo"><span>Senha</span><input id="login-senha" type="password" required autocomplete="current-password" /></label>
+      <button class="botao botao--primario" type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <div id="painel" class="painel" hidden>
+    <aside class="lateral">
+      <nav id="abas" class="abas" aria-label="Seções do painel"></nav>
+      <div class="lateral__rodape">
+        <button id="publicar" class="botao botao--cta" type="button">Publicar alterações</button>
+        <a href="/" target="_blank" rel="noopener">Ver o site</a>
+        <button id="sair" type="button" class="link">Sair</button>
+      </div>
+    </aside>
+    <main id="area" class="area"></main>
+  </div>
+
+  <p id="aviso" class="aviso" role="status" hidden></p>
+
+  <script>
+    import { iniciarAdmin } from '../scripts/admin';
+    import { supabaseConfigurado } from '../lib/supabase';
+    if (supabaseConfigurado) iniciarAdmin();
+    else {
+      const l = document.getElementById('login')!;
+      l.hidden = false;
+      l.innerHTML = '<div class="login__form"><h1>Supabase não configurado</h1><p>Defina PUBLIC_SUPABASE_URL e PUBLIC_SUPABASE_ANON_KEY (veja o README).</p></div>';
+    }
+  </script>
+</body>
+</html>
+
+<style is:global>
+  body.admin { background: #F3F6F7; font-size: 15px; min-height: 100vh; }
+  .admin .barra { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: var(--km-grafite); color: var(--km-nevoa); }
+  .admin .barra__titulo { font: 500 0.8rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--km-ambar); }
+  .admin .login { display: grid; place-items: center; padding: 64px 16px; }
+  .admin .login__form { display: grid; gap: 16px; width: 100%; max-width: 380px; padding: 28px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); }
+  .admin .login__form h1 { font-size: 1.5rem; }
+  .admin .painel { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+  .admin .lateral { display: flex; flex-direction: column; gap: 20px; padding: 20px 14px; background: #fff; border-right: 1px solid var(--line); }
+  .admin .abas { display: grid; gap: 2px; }
+  .admin .abas button { text-align: left; padding: 9px 12px; border: 0; border-radius: 6px; background: none; font: 500 0.95rem var(--f-body); color: var(--fg); cursor: pointer; }
+  .admin .abas button:hover { background: var(--bg-alt); }
+  .admin .abas button[aria-current="true"] { background: #E1EEF0; color: var(--accent); font-weight: 600; }
+  .admin .lateral__rodape { margin-top: auto; display: grid; gap: 10px; }
+  .admin .lateral__rodape .botao { min-height: 44px; font-size: 0.92rem; }
+  .admin .link { background: none; border: 0; color: var(--muted); text-align: left; padding: 0; cursor: pointer; font: inherit; text-decoration: underline; }
+  @media (max-width: 760px) {
+    .admin .painel { grid-template-columns: 1fr; }
+    .admin .lateral { border-right: 0; border-bottom: 1px solid var(--line); }
+    .admin .abas { grid-auto-flow: column; overflow-x: auto; }
+    .admin .abas button { white-space: nowrap; }
+  }
+  .admin .area { padding: 24px clamp(16px, 3vw, 32px); display: grid; gap: 18px; align-content: start; }
+  .admin .area__cabeca { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .admin .area__cabeca h2 { font-size: 1.5rem; }
+  .admin .area__cabeca p { color: var(--muted); }
+  .admin .vazio { padding: 32px; background: #fff; border: 1px dashed #B8C6CA; border-radius: var(--raio); color: var(--muted); display: grid; gap: 6px; }
+  .admin .itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .admin .itens button { width: 100%; display: grid; gap: 2px; text-align: left; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font: inherit; color: var(--fg); }
+  .admin .itens button:hover { border-color: var(--accent); }
+  .admin .itens span { color: var(--muted); font-size: 0.88rem; }
+  .admin .pedidos { display: grid; gap: 8px; }
+  .admin .pedido { background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .admin .pedido[data-status="novo"] { border-left: 4px solid var(--km-ambar); }
+  .admin .pedido summary { display: grid; grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; cursor: pointer; }
+  .admin .pedido time { color: var(--muted); font: 500 0.82rem var(--f-mono); }
+  .admin .pedido__status { font: 600 0.72rem var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+  @media (max-width: 760px) { .admin .pedido summary { grid-template-columns: 1fr; gap: 2px; } }
+  .admin .pedido__corpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; padding: 4px 16px 18px; }
+  @media (max-width: 900px) { .admin .pedido__corpo { grid-template-columns: 1fr; } }
+  .admin .pedido dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+  .admin .pedido dt { color: var(--muted); font-size: 0.88rem; }
+  .admin .pedido dd { margin: 0; overflow-wrap: anywhere; }
+  .admin .pre { white-space: pre-wrap; }
+  .admin .pedido__acoes { display: grid; gap: 10px; align-content: start; }
+  .admin .pedido__acoes label { display: grid; gap: 4px; font-weight: 500; font-size: 0.9rem; }
+  .admin select, .admin input:not([type="checkbox"]):not([type="file"]), .admin textarea { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid #B8C6CA; border-radius: 6px; font: 400 0.95rem var(--f-body); color: var(--fg); background: #fff; }
+  .admin .campo { display: grid; gap: 5px; font-weight: 500; font-size: 0.92rem; }
+  .admin .campo small { color: var(--muted); font-weight: 400; }
+  .admin .campo--check { grid-template-columns: auto 1fr; align-items: center; }
+  .admin .campo--check small { grid-column: 2; }
+  .admin .campo--check input { width: 18px; height: 18px; accent-color: var(--km-petroleo); }
+  .admin .campo--curto input { max-width: 140px; }
+  .admin .imagem { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+  .admin .imagem img { width: 56px; height: 56px; object-fit: contain; background: var(--bg-alt); border-radius: 4px; }
+  .admin .imagem__enviar { min-height: 40px; padding: 6px 12px; font-size: 0.88rem; color: var(--accent); }
+  .admin .editor { display: grid; gap: 14px; }
+  .admin .editor__acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+  .admin .botao--perigo { background: #fff; color: var(--erro); border-color: var(--erro); }
+  .admin .confirmar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: var(--erro); }
+  .admin .modal { position: fixed; inset: 0; z-index: 30; background: rgba(28, 42, 49, .55); display: grid; place-items: start center; padding: 32px 16px; overflow-y: auto; }
+  .admin .modal .editor { width: 100%; max-width: 720px; background: #fff; border-radius: var(--raio); padding: 24px; }
+  .admin .editor__cabeca { display: flex; justify-content: space-between; align-items: center; }
+  .admin .editor__cabeca h2 { font-size: 1.3rem; }
+  .admin .fechar { border: 0; background: none; font-size: 1.8rem; line-height: 1; cursor: pointer; color: var(--muted); }
+  .admin .aviso { position: fixed; right: 16px; bottom: 16px; z-index: 40; max-width: 420px; padding: 12px 16px; border-radius: 6px; background: var(--km-grafite); color: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
+  .admin .aviso[data-tipo="erro"] { background: var(--erro); }
+  .admin .erro { color: var(--erro); }
+</style>
