@@ -1,7 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
-const chave = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string | undefined;
+// Aceita a URL do projeto mesmo se copiada com /rest/v1 ou barra no final.
+const url = (import.meta.env.PUBLIC_SUPABASE_URL as string | undefined)
+  ?.trim()
+  .replace(/\/+$/, '')
+  .replace(/\/(rest|auth|storage|functions)\/v1$/, '');
+const chave = (import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string | undefined)?.trim();
 
 export const supabaseConfigurado = Boolean(url && chave);
 
