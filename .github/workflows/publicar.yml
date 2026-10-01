@@ -70,4 +70,4 @@ jobs:
           # mantém a conexão criptografada sem exigir que o nome confira.
           security: loose
           local-dir: ./dist/
-          server-dir: ${{ secrets.FTP_SERVER_DIR || './domains/kmbim.com.br/public_html/' }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
