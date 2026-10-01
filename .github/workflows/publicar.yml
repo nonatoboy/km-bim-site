@@ -47,6 +47,17 @@ jobs:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
+      # Cópia do site gerado para download (aba Actions → execução → Artifacts),
+      # útil para enviar manualmente pelo Gerenciador de arquivos da Hostinger.
+      - name: Guardar site gerado (.zip)
+        if: steps.segredos.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-kmbim
+          path: dist/
+          include-hidden-files: true
+          retention-days: 30
+
       # Aceita o endereço como a Hostinger mostra (ex.: ftp://123.45.67.89/) e remove espaços.
       - name: Preparar endereço FTP
         if: steps.segredos.outputs.ok == 'true'
