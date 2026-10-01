@@ -1,0 +1,24 @@
+name: Diagnóstico FTP
+
+# Só lista pastas da conta FTP (não altera nada). Execução manual.
+on:
+  workflow_dispatch:
+
+jobs:
+  listar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listar pastas da conta FTP
+        env:
+          BRUTO: ${{ secrets.FTP_SERVER }}
+          USUARIO: ${{ secrets.FTP_USERNAME }}
+          SENHA: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          HOST=$(printf '%s' "$BRUTO" | tr -d '[:space:]' | sed -E 's#^[a-zA-Z]+://##; s#/.*$##; s#:[0-9]+$##')
+          echo "::add-mask::$HOST"
+          echo "== Pasta inicial do login (PWD) =="
+          curl -sS -v --ssl-reqd -k --user "$USUARIO:$SENHA" "ftp://$HOST/" -o /dev/null 2>&1 | grep -E '^< 257' || true
+          for p in "" "public_html/" "domains/" "domains/kmbim.com.br/" "domains/kmbim.com.br/public_html/"; do
+            echo "== ./$p =="
+            curl -sS --ssl-reqd -k --user "$USUARIO:$SENHA" "ftp://$HOST/$p" 2>&1 | head -40 || true
+          done
