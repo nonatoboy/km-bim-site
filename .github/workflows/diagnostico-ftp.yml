@@ -16,6 +16,11 @@ jobs:
         run: |
           HOST=$(printf '%s' "$BRUTO" | tr -d '[:space:]' | sed -E 's#^[a-zA-Z]+://##; s#/.*$##; s#:[0-9]+$##')
           echo "::add-mask::$HOST"
+          echo "== Endereços =="
+          echo "FTP_SERVER é um IP? $(printf '%s' "$HOST" | grep -Eq '^[0-9.]+$' && echo sim || echo 'não (hostname)')"
+          echo "IP do servidor FTP usado: $(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}')"
+          echo "IP do site kmbim.com.br:  $(getent ahostsv4 kmbim.com.br | awk 'NR==1{print $1}')"
+          echo "IP de ftp.kmbim.com.br:   $(getent ahostsv4 ftp.kmbim.com.br | awk 'NR==1{print $1}')"
           echo "== Pasta inicial do login (PWD) =="
           curl -sS -v --ssl-reqd -k --user "$USUARIO:$SENHA" "ftp://$HOST/" -o /dev/null 2>&1 | grep -E '^< 257' || true
           for p in "" "public_html/" "domains/" "domains/kmbim.com.br/" "domains/kmbim.com.br/public_html/"; do
