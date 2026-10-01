@@ -71,6 +71,14 @@ GitHub → **Actions → Publicar site → Run workflow**. Em cerca de 2 minutos
 - cada commit na branch `main` publica automaticamente;
 - o botão **Publicar alterações** no painel (`kmbim.com.br/admin`) publica depois de editar conteúdo.
 
+### Envio manual (enquanto o FTP automático não estiver resolvido)
+
+1. GitHub → **Actions** → execução mais recente de **Publicar site** → seção **Artifacts** → baixe **site-kmbim** (.zip).
+2. hPanel → **Gerenciador de arquivos** → entre em **public_html** → selecione tudo e exclua.
+3. **Upload → File** com o .zip → botão direito → **Extract** na própria `public_html` → apague o .zip.
+
+O botão **Publicar alterações** do painel também gera esse .zip.
+
 Se o envio FTP falhar mesmo assim com erro de TLS, troque `protocol: ftps` por `protocol: ftp` em `.github/workflows/publicar.yml`.
 
 ## Desenvolvimento local
