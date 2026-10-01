@@ -57,7 +57,7 @@ No repositório: **Settings → Secrets and variables → Actions → New reposi
 | `FTP_SERVER` | hPanel → Arquivos → Contas FTP → **Servidor FTP** (IP ou `ftp.kmbim.com.br`) |
 | `FTP_USERNAME` | usuário FTP (mesma tela) |
 | `FTP_PASSWORD` | senha FTP (mesma tela; redefina se não souber) |
-| `FTP_SERVER_DIR` | opcional; padrão `./public_html/`. Use `./domains/kmbim.com.br/public_html/` se a conta FTP abrir na raiz da hospedagem |
+| `FTP_SERVER_DIR` | opcional; padrão `./domains/kmbim.com.br/public_html/` (conta FTP principal da Hostinger, que abre na raiz da hospedagem). Use `./` se a conta FTP abrir direto dentro de `public_html` |
 
 ### 5. Hostinger
 
