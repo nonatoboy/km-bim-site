@@ -1,0 +1,86 @@
+---
+// Página auxiliar (fora do menu e do Google) para copiar a assinatura de e-mail para o Outlook.
+import assinatura from '../../brand/assinatura/assinatura.html?raw';
+import textoSimples from '../../brand/assinatura/assinatura.txt?raw';
+---
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Assinatura de e-mail · KM BIM</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    body { margin: 0; background: #EEF3F4; font: 15px/1.6 'Segoe UI', Arial, sans-serif; color: #1C2A31; }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 20px; }
+    h1 { font-size: 24px; margin: 0; }
+    .cartao { background: #fff; border: 1px solid #D6DFE1; border-radius: 8px; padding: 24px; overflow-x: auto; }
+    .rotulo { font: 600 12px ui-monospace, Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; color: #0B5563; margin: 0 0 12px; }
+    button { min-height: 44px; padding: 10px 18px; border: 0; border-radius: 8px; background: #F2A33A; color: #1C2A31; font: 600 15px 'Segoe UI', Arial, sans-serif; cursor: pointer; }
+    button:hover { background: #E08F1F; }
+    ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+    pre { margin: 0; white-space: pre-wrap; font: 14px/1.5 ui-monospace, Consolas, monospace; }
+    .ok { color: #1E7F4F; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Assinatura de e-mail KM BIM</h1>
+
+    <section class="cartao">
+      <p class="rotulo">Assinatura</p>
+      <div id="assinatura" set:html={assinatura} />
+    </section>
+
+    <p><button type="button" id="copiar">Copiar assinatura</button> <span id="status" class="ok" role="status"></span></p>
+
+    <section class="cartao">
+      <p class="rotulo">Outlook na web (outlook.office.com)</p>
+      <ol>
+        <li>Clique em <strong>Copiar assinatura</strong> acima.</li>
+        <li>No Outlook, abra <strong>Configurações (engrenagem) → Contas → Assinaturas</strong>.</li>
+        <li>Clique em <strong>+ Nova assinatura</strong>, dê o nome <em>KM BIM</em> e cole (Ctrl+V) no campo de texto.</li>
+        <li>Em <strong>Selecionar assinaturas padrão</strong>, escolha <em>KM BIM</em> para novas mensagens e respostas. Clique em <strong>Salvar</strong>.</li>
+      </ol>
+    </section>
+
+    <section class="cartao">
+      <p class="rotulo">Outlook no computador (Windows)</p>
+      <ol>
+        <li>Clique em <strong>Copiar assinatura</strong> acima.</li>
+        <li>No Outlook, vá em <strong>Arquivo → Opções → Email → Assinaturas…</strong> (no Outlook novo, use o caminho da versão web).</li>
+        <li>Clique em <strong>Novo</strong>, nomeie como <em>KM BIM</em> e cole (Ctrl+V) na caixa de edição.</li>
+        <li>Em <strong>Novas mensagens</strong> e <strong>Respostas/encaminhamentos</strong>, escolha <em>KM BIM</em>. Clique em <strong>OK</strong>.</li>
+      </ol>
+    </section>
+
+    <section class="cartao">
+      <p class="rotulo">Celular (Outlook para iOS e Android só aceita texto)</p>
+      <pre id="texto">{textoSimples}</pre>
+      <p>Em <strong>Configurações → Assinatura</strong>, cole o texto acima.</p>
+    </section>
+  </main>
+
+  <script>
+    const botao = document.getElementById('copiar')!;
+    const status = document.getElementById('status')!;
+    botao.addEventListener('click', async () => {
+      const el = document.getElementById('assinatura')!;
+      try {
+        // Copia como HTML formatado, para colar no editor de assinatura do Outlook.
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([el.innerHTML], { type: 'text/html' }),
+          'text/plain': new Blob([el.innerText], { type: 'text/plain' }),
+        })]);
+      } catch {
+        // Navegadores sem suporte: seleciona a assinatura e usa a cópia padrão.
+        const r = document.createRange(); r.selectNodeContents(el);
+        const s = getSelection()!; s.removeAllRanges(); s.addRange(r);
+        document.execCommand('copy');
+      }
+      status.textContent = 'Copiada. Agora cole no Outlook.';
+    });
+  </script>
+</body>
+</html>
