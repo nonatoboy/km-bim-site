@@ -89,7 +89,7 @@ Gestão do conhecimento
 1. Na página criada, clique em **Editar página**.
 2. **Cabeçalho → Imagem de capa**: envie `km-bim-linkedin-empresa-capa@2x.png`.
 3. **Botões**: ative o botão personalizado **Visitar site** com o link `https://kmbim.com.br/solucoes`.
-4. **Informações → Visão geral**: cole o texto do **Sobre**.
+4. **Informações → Visão geral**: cole o texto do **Sobre** no idioma **principal** da página (Português). Se o texto ficar só em outro idioma, o LinkedIn bloqueia os convites para seguir alegando que a Visão geral está vazia.
 5. **Informações → Especialidades**: adicione as especialidades acima, uma a uma.
 6. **Localizações**: São Paulo, SP, Brasil (pode marcar só a cidade, sem endereço).
 7. Salve.
