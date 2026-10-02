@@ -16,6 +16,9 @@ const grupos = [
       <span class="rotulo">Quem somos</span>
       <h1>KM BIM Consultoria</h1>
       <p>{cfg.sobre_empresa}</p>
+      {cfg.linkedin_empresa_url && (
+        <p><a class="botao botao--contorno" href={cfg.linkedin_empresa_url} target="_blank" rel="noopener">Seguir a KM BIM no LinkedIn</a></p>
+      )}
     </div>
     <div class="container km">
       <div><strong>K</strong><span>Kyuma</span></div>

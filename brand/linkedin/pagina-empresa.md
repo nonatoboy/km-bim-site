@@ -12,7 +12,7 @@ Imagens nesta pasta:
 | Campo | Preencher com |
 | --- | --- |
 | Nome | KM BIM Consultoria |
-| URL pública | linkedin.com/company/**kmbim** |
+| URL pública | linkedin.com/company/**km-consultoria-bim** |
 | Site | https://kmbim.com.br |
 | Setor | Construção *(alternativa: Serviços de arquitetura e planejamento)* |
 | Tamanho da empresa | 0–1 funcionário |
@@ -81,7 +81,7 @@ Gestão do conhecimento
 
 ### Criar a página
 1. No LinkedIn, clique em **Para empresas** (ícone de grade, no canto superior direito) → **Criar uma Página da empresa** → **Empresa**.
-2. Preencha **Nome**, **URL pública** (`kmbim`), **Site**, **Setor**, **Tamanho**, **Tipo**, envie o **logo** e cole o **Slogan**.
+2. Preencha **Nome**, **URL pública** (`km-consultoria-bim`), **Site**, **Setor**, **Tamanho**, **Tipo**, envie o **logo** e cole o **Slogan**.
 3. Marque a declaração de que você é representante autorizado e clique em **Criar página**.
    O LinkedIn pode pedir para confirmar um e-mail do domínio (`@kmbim.com.br`); use o seu e-mail Microsoft da empresa.
 

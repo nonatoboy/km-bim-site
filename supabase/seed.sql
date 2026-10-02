@@ -10,6 +10,7 @@ insert into public.configuracoes (chave, valor) values
   ('socio_bio', 'Engenheiro civil pela Escola Politécnica da USP, com mais de 30 anos entre canteiro, planejamento, custos, sistemas e construção virtual. Liderou a implantação de BIM e de sistemas corporativos em uma das maiores construtoras do país e estruturou áreas de serviços BIM, inovação e gestão do conhecimento em consultoria de tecnologia. Na KM BIM, leva essa experiência a empresas de pequeno e médio porte, com soluções sob medida.'),
   ('socio_foto', '/img/marcelo-nonato-santos.jpg'),
   ('linkedin_url', 'https://www.linkedin.com/in/marcelo-nonato-santos'),
+  ('linkedin_empresa_url', 'https://www.linkedin.com/company/km-consultoria-bim'),
   ('cnpj', ''),
   ('aviso_privacidade', 'Os dados informados serão usados somente para analisar sua solicitação e entrar em contato sobre a proposta. Não compartilhamos seus dados com terceiros e você pode pedir a exclusão a qualquer momento.')
 on conflict (chave) do nothing;

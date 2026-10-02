@@ -75,6 +75,7 @@ const ano = new Date().getFullYear();
         <a href="/solucoes">Soluções</a>
         <a href="/quem-somos">Quem somos</a>
         <a href="/orcamento">Solicitar orçamento</a>
+        {cfg.linkedin_empresa_url && <a href={cfg.linkedin_empresa_url} rel="noopener" target="_blank">KM BIM no LinkedIn</a>}
         {cfg.linkedin_url && <a href={cfg.linkedin_url} rel="noopener" target="_blank">LinkedIn do sócio</a>}
       </nav>
       <p class="rodape__legal">

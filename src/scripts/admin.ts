@@ -101,7 +101,7 @@ const TABELAS: Tabela[] = [
 const ROTULOS_CONFIG: Record<string, string> = {
   tagline: 'Assinatura (tagline)', home_titulo: 'Título da página inicial', home_subtitulo: 'Subtítulo da página inicial',
   sobre_empresa: 'Texto sobre a empresa', socio_nome: 'Nome do sócio', socio_cargo: 'Cargo do sócio', socio_bio: 'Biografia do sócio',
-  socio_foto: 'Foto do sócio (URL)', linkedin_url: 'LinkedIn', cnpj: 'CNPJ (rodapé)', aviso_privacidade: 'Aviso de privacidade do formulário',
+  socio_foto: 'Foto do sócio (URL)', linkedin_url: 'LinkedIn do sócio', linkedin_empresa_url: 'LinkedIn da empresa', cnpj: 'CNPJ (rodapé)', aviso_privacidade: 'Aviso de privacidade do formulário',
 };
 
 const STATUS: [string, string][] = [['novo', 'Novo'], ['em_analise', 'Em análise'], ['respondido', 'Respondido'], ['arquivado', 'Arquivado']];
