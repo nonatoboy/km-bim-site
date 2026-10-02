@@ -85,7 +85,7 @@ const grupos = [
           {publicacoes.map((p) => (
             <li>
               <strong>{p.link ? <a href={p.link} target="_blank" rel="noopener">{p.titulo}</a> : p.titulo}</strong>
-              <span>{[p.veiculo, p.ano].filter(Boolean).join(' · ')}</span>
+              <span>{[p.veiculo, p.ano, /\.pdf($|\?)/i.test(p.link) && 'PDF'].filter(Boolean).join(' · ')}</span>
             </li>
           ))}
         </ul>

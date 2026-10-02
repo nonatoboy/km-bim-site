@@ -3,7 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
-type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'url';
+type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url';
 interface Campo { nome: string; rotulo: string; tipo: TipoCampo; opcoes?: [string, string][]; obrigatorio?: boolean; ajuda?: string }
 interface Tabela { nome: string; rotulo: string; chave: string; titulo: string; subtitulo?: string; campos: Campo[] }
 
@@ -67,7 +67,7 @@ const TABELAS: Tabela[] = [
       { nome: 'titulo', rotulo: 'Título', tipo: 'texto', obrigatorio: true },
       { nome: 'veiculo', rotulo: 'Veículo ou tipo', tipo: 'texto' },
       { nome: 'ano', rotulo: 'Ano', tipo: 'numero' },
-      { nome: 'link', rotulo: 'Link ou PDF', tipo: 'url' },
+      { nome: 'link', rotulo: 'Arquivo PDF ou link', tipo: 'pdf', ajuda: 'Envie o PDF do artigo ou cole o link de onde ele está publicado.' },
       { nome: 'ordem', rotulo: 'Ordem', tipo: 'numero' },
       { nome: 'ativo', rotulo: 'Visível no site', tipo: 'booleano' },
     ],
@@ -275,6 +275,10 @@ function campoHtml(c: Campo, v: any) {
       return `<div class="campo"><label for="${id}">${esc(c.rotulo)}</label>
         <div class="imagem">${v ? `<img src="${esc(v)}" alt="">` : ''}<input id="${id}" name="${c.nome}" value="${esc(v)}" placeholder="URL da imagem">
         <label class="botao botao--contorno imagem__enviar">Enviar arquivo<input type="file" accept="image/*" data-upload="${c.nome}" hidden></label></div></div>`;
+    case 'pdf':
+      return `<div class="campo"><label for="${id}">${esc(c.rotulo)}</label>
+        <div class="imagem imagem--pdf">${v ? `<a href="${esc(v)}" target="_blank" rel="noopener">Abrir</a>` : ''}<input id="${id}" name="${c.nome}" value="${esc(v)}" placeholder="https://…">
+        <label class="botao botao--contorno imagem__enviar">Enviar PDF<input type="file" accept="application/pdf" data-upload="${c.nome}" hidden></label></div>${ajuda}</div>`;
     default:
       return `<label class="campo"><span>${esc(c.rotulo)}</span><input type="${c.tipo === 'url' ? 'url' : 'text'}" id="${id}" name="${c.nome}" value="${esc(v)}" ${req}>${ajuda}</label>`;
   }
@@ -312,7 +316,7 @@ function editar(t: Tabela, linha: Record<string, any> | null) {
     if (error) { aviso(`Falha no envio: ${error.message}`, 'erro'); return; }
     const url = db.storage.from('midia').getPublicUrl(caminho).data.publicUrl;
     (form.elements.namedItem(inp.dataset.upload!) as HTMLInputElement).value = url;
-    aviso('Imagem enviada. Salve para confirmar.');
+    aviso('Arquivo enviado. Clique em Salvar para confirmar.');
   }));
 
   form.addEventListener('submit', async (e) => {
