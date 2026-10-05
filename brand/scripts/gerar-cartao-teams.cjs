@@ -18,7 +18,7 @@ const simbolo = ler('brand/logo/km-bim-simbolo-negativo.svg');
 const qr = ler('brand/cartao/qr-kmbim.svg');
 
 // ---------------------------------------------------------------- cartão
-// Formato 90 × 50 mm + 3 mm de sangria em cada lado = 96 × 56 mm. Conteúdo a 4 mm do corte.
+// Gabarito Printi: 90 × 48 mm + 3 mm de sangria em cada lado = 96 × 54 mm. Conteúdo a 3 mm ou mais do corte (6 mm da borda do arquivo).
 const frente = `<section class="pg frente">
   <div class="logo">${verticalNeg}</div>
   <p class="tag">Conhecimento que constrói.</p>
@@ -35,24 +35,25 @@ const verso = `<section class="pg verso">
   <div class="marca">${horizontalPos}</div>
 </section>`;
 const cartaoCss = `${fontes}
-@page{size:96mm 56mm;margin:0}
+@page{size:96mm 54mm;margin:0}
 html,body{margin:0}
-.pg{position:relative;width:96mm;height:56mm;overflow:hidden;page-break-after:always;box-sizing:border-box}
-.frente{background:#1C2A31;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2mm}
-.frente .logo svg{width:42mm;height:auto;display:block}
+.pg{position:relative;width:96mm;height:54mm;overflow:hidden;page-break-after:always;box-sizing:border-box}
+.frente{background:#1C2A31;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding-bottom:4mm}
+.frente .logo svg{width:35mm;height:auto;display:block}
 .frente .tag{margin:0;font:600 7.5pt Saira,sans-serif;letter-spacing:.04em;color:#F2A33A}
-.frente::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3mm;background:#0B5563}
+/* faixa de 6 mm: 3 mm visíveis após o corte + 3 mm de sangria */
+.frente::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6mm;background:#0B5563}
 .verso{background:#FFFFFF;padding:7mm 7mm 7mm 7mm}
-.verso::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4.6mm;background:#F2A33A}
-.dados{position:absolute;left:9mm;top:8.5mm;display:flex;flex-direction:column;gap:.4mm;color:#1C2A31}
+.verso::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6.5mm;background:#F2A33A}
+.dados{position:absolute;left:10.5mm;top:8mm;display:flex;flex-direction:column;gap:.4mm;color:#1C2A31}
 .nome{margin:0 0 .3mm;font:800 11pt/1.1 Saira,sans-serif}
 .cargo{margin:0 0 2.6mm;font:600 7pt Plex,sans-serif;color:#0B5563}
 .linha{margin:0;font:400 7pt/1.45 Plex,sans-serif;color:#3C4C53}
 .forte{font-weight:600;color:#0B5563}
-.qr{position:absolute;right:8mm;top:8.5mm;display:flex;flex-direction:column;align-items:center;gap:1mm}
-.qr svg{width:17mm;height:17mm;display:block}
+.qr{position:absolute;right:8mm;top:8mm;display:flex;flex-direction:column;align-items:center;gap:1mm}
+.qr svg{width:16mm;height:16mm;display:block}
 .qr span{font:500 5pt Mono,monospace;color:#56666D}
-.marca{position:absolute;right:8mm;bottom:7.5mm}
+.marca{position:absolute;right:8mm;bottom:7mm}
 .marca svg{height:7mm;width:auto;display:block}`;
 const cartaoHtml = `<!doctype html><meta charset="utf-8"><style>${cartaoCss}</style>${frente}${verso}`;
 
@@ -91,16 +92,19 @@ const teamsClaro = `<!doctype html><meta charset="utf-8"><style>${teamsCss}</sty
 
 (async () => {
   const b = await chromium.launch();
-  // PDF do cartão (2 páginas: frente e verso), pronto para gráfica
+  // PDF do cartão (2 páginas: frente e verso) em RGB; depois ajustado e convertido para CMYK
   let p = await b.newPage();
   await p.setContent(cartaoHtml); await p.waitForTimeout(300);
-  await p.pdf({ path: path.join(raiz, 'brand/cartao/km-bim-cartao-visita.pdf'), width: '3.7795in', height: '2.2047in', printBackground: true, preferCSSPageSize: true, pageRanges: '1-2' });
+  const rgb = path.join(require('os').tmpdir(), 'km-bim-cartao-rgb.pdf');
+  await p.pdf({ path: rgb, width: '96mm', height: '54mm', printBackground: true, preferCSSPageSize: true, pageRanges: '1-2' });
+  // Tamanho exato 96 × 54 mm, caixas de corte e sangria, e conversão para CMYK (Ghostscript + PyMuPDF)
+  require('child_process').execFileSync('python3', [path.join(__dirname, 'finalizar-cartao-pdf.py'), rgb, path.join(raiz, 'brand/cartao/km-bim-cartao-visita.pdf')], { stdio: 'inherit' });
   // Prévias PNG (300 dpi) de cada face
   const mmPx = 300 / 25.4;
   await p.setViewportSize({ width: Math.round(96 * 3.7795), height: Math.round(56 * 3.7795) * 2 });
   for (const [face, nome] of [[frente, 'frente'], [verso, 'verso']]) {
     // Cada face renderizada sozinha, para a prévia não pegar borda da outra
-    const p2 = await b.newPage({ viewport: { width: 363, height: 212 }, deviceScaleFactor: mmPx / 3.7795 });
+    const p2 = await b.newPage({ viewport: { width: 363, height: 204 }, deviceScaleFactor: mmPx / 3.7795 });
     await p2.setContent(`<!doctype html><meta charset="utf-8"><style>${cartaoCss}</style>${face}`); await p2.waitForTimeout(300);
     await (await p2.$('.pg')).screenshot({ path: path.join(raiz, `brand/cartao/km-bim-cartao-${nome}.png`) });
     await p2.close();

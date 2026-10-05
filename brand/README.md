@@ -53,7 +53,7 @@ Todas gratuitas no Google Fonts.
 
 ## Cartão de visita (`cartao/`)
 
-- `km-bim-cartao-visita.pdf`: arquivo para a gráfica. Duas páginas (frente e verso), 90 × 50 mm com 3 mm de sangria (96 × 56 mm), textos a 4 mm ou mais do corte.
+- `km-bim-cartao-visita.pdf`: arquivo para a gráfica, no gabarito da Printi. Duas páginas (frente e verso), 90 × 48 mm com 3 mm de sangria (96 × 54 mm), em CMYK, textos a 3 mm ou mais do corte.
 - `km-bim-cartao-frente.png` e `km-bim-cartao-verso.png`: prévias em 300 dpi.
 - O QR code do verso leva a https://kmbim.com.br.
 - Especificação sugerida: couchê 300 g, 4×4 cores, laminação fosca.
@@ -63,4 +63,4 @@ Todas gratuitas no Google Fonts.
 - `km-bim-teams-escuro.png` e `km-bim-teams-claro.png`, em 1920 × 1080.
 - No Teams: **Efeitos e avatares → Efeitos de vídeo → Adicionar novo**. O Teams mostra a sua própria imagem espelhada, mas os participantes veem o texto na direção certa.
 
-Para regenerar: `node brand/scripts/gerar-cartao-teams.cjs`.
+Para regenerar: `node brand/scripts/gerar-cartao-teams.cjs` (requer Ghostscript e `pip install pymupdf` para o PDF em CMYK).
