@@ -53,7 +53,8 @@ Todas gratuitas no Google Fonts.
 
 ## Cartão de visita (`cartao/`)
 
-- `km-bim-cartao-visita.pdf`: arquivo para a gráfica, no gabarito da Printi. Duas páginas (frente e verso), 90 × 48 mm com 3 mm de sangria (96 × 54 mm), em CMYK, textos a 3 mm ou mais do corte.
+- `km-bim-cartao-visita-frente.pdf` e `km-bim-cartao-visita-verso.pdf`: um arquivo por face, como a Printi pede.
+- `km-bim-cartao-visita.pdf`: arquivo único para a gráfica, no gabarito da Printi. Duas páginas (frente e verso), 90 × 48 mm com 3 mm de sangria (96 × 54 mm), em CMYK, textos a 3 mm ou mais do corte.
 - `km-bim-cartao-frente.png` e `km-bim-cartao-verso.png`: prévias em 300 dpi.
 - O QR code do verso leva a https://kmbim.com.br.
 - Especificação sugerida: couchê 300 g, 4×4 cores, laminação fosca.

@@ -31,3 +31,11 @@ for pg in final:
     pg.set_trimbox(pymupdf.Rect(mb.x0 + SANGRIA, mb.y0 + SANGRIA, mb.x1 - SANGRIA, mb.y1 - SANGRIA))
 final.save(saida, garbage=3, deflate=True)
 print('PDF do cartão:', saida, f'{len(final)} páginas, 96 × 54 mm, CMYK')
+
+# Arquivos separados de frente e verso (algumas gráficas pedem um PDF por face)
+for i, face in enumerate(['frente', 'verso']):
+    um = pymupdf.open()
+    um.insert_pdf(final, from_page=i, to_page=i)
+    destino = saida.replace('.pdf', f'-{face}.pdf')
+    um.save(destino, garbage=3, deflate=True)
+    print('PDF:', destino)
