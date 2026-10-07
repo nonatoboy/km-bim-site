@@ -65,3 +65,10 @@ Todas gratuitas no Google Fonts.
 - No Teams: **Efeitos e avatares → Efeitos de vídeo → Adicionar novo**. O Teams mostra a sua própria imagem espelhada, mas os participantes veem o texto na direção certa.
 
 Para regenerar: `node brand/scripts/gerar-cartao-teams.cjs` (requer Ghostscript e `pip install pymupdf` para o PDF em CMYK).
+
+## Proposta técnica e comercial (`proposta/`)
+
+- `km-bim-proposta-modelo.docx`: modelo em Word com capa, 10 seções, tabelas de escopo, cronograma e investimento, e aceite.
+- Campos entre **[colchetes], em âmbar e itálico**, são os que mudam a cada proposta; textos em cinza itálico são orientações e devem ser apagados.
+- Para usar como modelo do Word: abra, **Arquivo → Salvar como → Modelo do Word (.dotx)**.
+- Para regenerar: `npm i --no-save docx && node brand/scripts/gerar-proposta.cjs`.
