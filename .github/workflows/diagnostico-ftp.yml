@@ -19,8 +19,7 @@ jobs:
           HOST=$(printf '%s' "$BRUTO" | tr -d '[:space:]' | sed -E 's#^[a-zA-Z]+://##; s#/.*$##; s#:[0-9]+$##')
           U=$(printf '%s' "$USUARIO" | tr -d '[:space:]')
           echo "== Conferência dos segredos (sem revelar valores) =="
-          echo "FTP_SERVER é o IP 147.93.37.70? $([ "$HOST" = "147.93.37.70" ] && echo SIM || echo NÃO)"
-          echo "FTP_USERNAME é u386480918? $([ "$U" = "u386480918" ] && echo SIM || echo "NÃO (tem ${#U} caracteres; começa com '${U:0:1}')")"
+          echo "FTP_SERVER: $([ -n "$HOST" ] && echo preenchido || echo VAZIO) · FTP_USERNAME com ${#U} caracteres, contém ponto: $(case "$U" in *.*) echo sim;; *) echo não;; esac)"
           echo "FTP_USERNAME tinha espaços extras? $([ "$U" = "$USUARIO" ] && echo não || echo SIM)"
           MARCA="km-ftp-teste-$GITHUB_RUN_ID.txt"
           echo "teste $GITHUB_RUN_ID" > "$MARCA"
