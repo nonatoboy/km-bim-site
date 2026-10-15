@@ -359,7 +359,7 @@ function campoHtml(c: Campo, v: any) {
     case 'numero':
       return `<label class="campo campo--curto"><span>${esc(c.rotulo)}</span><input type="number" step="any" min="0" id="${id}" name="${c.nome}" value="${esc(v)}">${ajuda}</label>`;
     case 'dataHora':
-      return `<label class="campo campo--curto"><span>${esc(c.rotulo)}</span><input type="datetime-local" id="${id}" name="${c.nome}" value="${esc(paraLocal(v))}" ${req}>${ajuda}</label>`;
+      return `<label class="campo campo--data"><span>${esc(c.rotulo)}</span><input type="datetime-local" id="${id}" name="${c.nome}" value="${esc(paraLocal(v))}" ${req}>${ajuda}</label>`;
     case 'imagem':
       return `<div class="campo"><label for="${id}">${esc(c.rotulo)}</label>
         <div class="imagem">${v ? `<img src="${esc(v)}" alt="">` : ''}<input id="${id}" name="${c.nome}" value="${esc(v)}" placeholder="URL da imagem">
