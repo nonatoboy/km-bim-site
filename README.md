@@ -90,10 +90,10 @@ Cada evento ganha uma página com formulário em `kmbim.com.br/eventos/{slug}`. 
 1. **Banco:** no SQL Editor do Supabase, rode [`supabase/migrations/20261015000000_eventos.sql`](supabase/migrations/20261015000000_eventos.sql).
 2. **Resend (envio de e-mails):**
    1. Crie a conta em https://resend.com (plano gratuito: 3.000 e-mails/mês).
-   2. **Domains → Add Domain** → `kmbim.com.br`. O Resend mostra 3 ou 4 registros DNS (MX e TXT no subdomínio `send`, e o TXT `resend._domainkey`).
-   3. No hPanel da Hostinger: **Domínios → kmbim.com.br → DNS / Nameservers** → adicione exatamente os registros mostrados. Eles ficam em subdomínios próprios e **não mexem** no e-mail da Microsoft.
-   4. Volte ao Resend e clique em **Verify DNS Records** (pode levar de minutos a algumas horas).
-   5. **API Keys → Create API Key** (permissão *Sending access*). Copie a chave (`re_...`).
+   2. **Domains → Add Domain** → `eventos.kmbim.com.br` (subdomínio só para envio, região São Paulo). O Resend mostra os registros DNS: CNAME `rsend.eventos`, CNAME `send.eventos` e TXT `resend._domainkey.eventos`.
+   3. No hPanel da Hostinger: **Domínios → kmbim.com.br → DNS / Nameservers** → adicione exatamente os registros mostrados (não é preciso criar o subdomínio no hPanel). Eles **não mexem** no e-mail da Microsoft.
+   4. Volte ao Resend e clique em **Verify DNS Records** (o status fica *Not Started* até esse clique).
+   5. **API Keys → Create API Key** (permissão *Sending access*, domínio `eventos.kmbim.com.br`). Copie a chave (`re_...`).
 3. **Funções no Supabase** (Edge Functions → Deploy a new function → Via Editor), uma para cada arquivo:
    - nome `inscrever` → [`supabase/functions/inscrever/index.ts`](supabase/functions/inscrever/index.ts)
    - nome `inscricao` → [`supabase/functions/inscricao/index.ts`](supabase/functions/inscricao/index.ts)
@@ -104,7 +104,7 @@ Cada evento ganha uma página com formulário em `kmbim.com.br/eventos/{slug}`. 
    | Nome | Valor |
    | --- | --- |
    | `RESEND_API_KEY` | a chave `re_...` |
-   | `EMAIL_REMETENTE` | `KM BIM Eventos <eventos@kmbim.com.br>` |
+   | `EMAIL_REMETENTE` | `KM BIM Eventos <inscricoes@eventos.kmbim.com.br>` |
    | `EMAIL_RESPOSTA` | `contato@kmbim.com.br` |
    | `EMAIL_AVISO` | `contato@kmbim.com.br` (recebe aviso de cada inscrição confirmada) |
    | `SITE_URL` | `https://kmbim.com.br` |
