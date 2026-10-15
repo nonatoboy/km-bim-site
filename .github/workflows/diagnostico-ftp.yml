@@ -45,6 +45,11 @@ jobs:
           curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" | grep -q ' assinatura$' && echo "SIM" || echo "NÃO"
           echo "== O site serve /assinatura/? =="
           curl -s -o /dev/null -w 'HTTP %{http_code}\n' "https://kmbim.com.br/assinatura/"
+          echo "== O site serve páginas que só o envio automático colocou lá? =="
+          for u in /eventos/ /eventos/confirmar/ /robots.txt /favicon.svg; do curl -s -o /dev/null -w "$u: HTTP %{http_code}\n" "https://kmbim.com.br$u?nocache=$GITHUB_RUN_ID"; done
+          echo "== Limpando marcadores antigos =="
+          for f in $(curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" --list-only | grep '^km-ftp-teste-' | grep -v "$MARCA"); do
+            curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" -Q "DELE $f" -o /dev/null && echo "apagado $f"; done
           echo "== Cabeçalhos do site (servidor/CDN) =="
           curl -sI "https://kmbim.com.br/" | grep -iE '^(server|x-|platform|panel|cf-|via|age):' || true
           echo "== Página inicial do site =="
