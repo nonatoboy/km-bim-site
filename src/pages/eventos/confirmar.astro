@@ -1,0 +1,82 @@
+---
+// Página aberta pelos links do e-mail: /eventos/confirmar?token=…  e  …&acao=cancelar
+import Base from '../../layouts/Base.astro';
+---
+<Base titulo="Inscrição em evento" semIndexar>
+  <section class="secao">
+    <div class="container caixa">
+      <div class="estado" data-estado="carregando">
+        <span class="rotulo">Eventos</span>
+        <h1>Processando sua inscrição…</h1>
+      </div>
+      <div class="estado" data-estado="confirmada" hidden>
+        <span class="rotulo">Inscrição confirmada</span>
+        <h1>Sua vaga está garantida!</h1>
+        <p>Enviamos para o seu e-mail o link de acesso e o convite para a agenda de <strong data-titulo></strong>, <span data-quando></span>.</p>
+      </div>
+      <div class="estado" data-estado="ja_confirmada" hidden>
+        <span class="rotulo">Inscrição confirmada</span>
+        <h1>Esta inscrição já estava confirmada</h1>
+        <p>O link de acesso de <strong data-titulo></strong> foi enviado no e-mail de confirmação. Confira também a caixa de spam.</p>
+      </div>
+      <div class="estado" data-estado="cancelada" hidden>
+        <span class="rotulo">Inscrição cancelada</span>
+        <h1>Inscrição cancelada</h1>
+        <p>Sua inscrição em <strong data-titulo></strong> foi cancelada e a vaga, liberada. Se mudar de ideia, inscreva-se novamente na <a data-link-evento href="/eventos">página do evento</a>.</p>
+      </div>
+      <div class="estado" data-estado="lotado" hidden>
+        <span class="rotulo">Vagas esgotadas</span>
+        <h1>As vagas se esgotaram</h1>
+        <p>Infelizmente as vagas de <strong data-titulo></strong> foram preenchidas antes da sua confirmação. Veja os <a href="/eventos">próximos eventos</a>.</p>
+      </div>
+      <div class="estado" data-estado="encerrado" hidden>
+        <span class="rotulo">Evento encerrado</span>
+        <h1>Este evento já aconteceu</h1>
+        <p>Veja os <a href="/eventos">próximos eventos</a> da KM BIM.</p>
+      </div>
+      <div class="estado" data-estado="invalido" hidden>
+        <span class="rotulo">Link inválido</span>
+        <h1>Não encontramos esta inscrição</h1>
+        <p>O link pode estar incompleto. Abra novamente o e-mail e clique no botão, ou faça uma nova inscrição na <a href="/eventos">página de eventos</a>.</p>
+      </div>
+      <div class="estado" data-estado="erro" hidden>
+        <span class="rotulo">Erro</span>
+        <h1>Não foi possível concluir agora</h1>
+        <p>Tente abrir o link novamente em alguns minutos.</p>
+      </div>
+      <p><a class="botao botao--primario" href="/eventos">Ver eventos</a></p>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { supabase, supabaseConfigurado } from '../../lib/supabase';
+  import { formatarData, formatarHora } from '../../lib/tipos';
+
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token') ?? '';
+  const acao = params.get('acao') === 'cancelar' ? 'cancelar' : 'confirmar';
+
+  function exibir(estado: string, evento?: { titulo: string; slug: string; inicio: string }) {
+    document.querySelectorAll<HTMLElement>('[data-estado]').forEach((el) => { el.hidden = el.dataset.estado !== estado; });
+    if (!evento) return;
+    document.querySelectorAll('[data-titulo]').forEach((el) => { el.textContent = evento.titulo; });
+    document.querySelectorAll('[data-quando]').forEach((el) => { el.textContent = `${formatarData(evento.inicio)}, às ${formatarHora(evento.inicio)}`; });
+    document.querySelectorAll<HTMLAnchorElement>('[data-link-evento]').forEach((el) => { el.href = `/eventos/${evento.slug}`; });
+  }
+
+  (async () => {
+    if (!token || !supabaseConfigurado) return exibir('invalido');
+    const { data, error } = await supabase().functions.invoke('inscricao', { body: { token, acao } });
+    if (error) {
+      try { const corpo = await (error as any).context?.json(); return exibir(corpo?.resultado ?? 'erro', corpo?.evento); } catch { return exibir('erro'); }
+    }
+    exibir(data?.resultado ?? 'erro', data?.evento);
+  })();
+</script>
+
+<style>
+  .caixa { max-width: 680px; display: grid; gap: 20px; }
+  .estado { display: grid; gap: 14px; }
+  .estado p { font-size: 1.08rem; color: var(--muted); }
+</style>

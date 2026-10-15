@@ -19,6 +19,7 @@ const canonica = new URL(Astro.url.pathname, Astro.site);
 const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
 const menu = [
   { href: '/solucoes', rotulo: 'Soluções' },
+  { href: '/eventos', rotulo: 'Eventos' },
   { href: '/quem-somos', rotulo: 'Quem somos' },
 ];
 const ano = new Date().getFullYear();
@@ -73,6 +74,7 @@ const ano = new Date().getFullYear();
       </div>
       <nav aria-label="Rodapé" class="rodape__links">
         <a href="/solucoes">Soluções</a>
+        <a href="/eventos">Eventos</a>
         <a href="/quem-somos">Quem somos</a>
         <a href="/orcamento">Solicitar orçamento</a>
         {cfg.linkedin_empresa_url && <a href={cfg.linkedin_empresa_url} rel="noopener" target="_blank">KM BIM no LinkedIn</a>}

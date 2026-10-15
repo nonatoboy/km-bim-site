@@ -1,0 +1,39 @@
+---
+import { formatarDataCurta, formatarDia, formatarMes, formatarHora, formatarPreco, rotuloModalidadeEvento, rotuloTipoEvento, type Evento } from '../lib/tipos';
+interface Props { evento: Evento }
+const { evento: e } = Astro.props;
+const dia = formatarDia(e.inicio);
+const mes = formatarMes(e.inicio);
+---
+<article class="evento" data-fim={e.fim}>
+  <a href={`/eventos/${e.slug}`} class="evento__link">
+    <div class="evento__data" aria-hidden="true"><strong>{dia}</strong><span>{mes}</span></div>
+    <div class="evento__info">
+      <div class="evento__selos">
+        <span class="selo selo--propria">{rotuloTipoEvento[e.tipo]}</span>
+        <span class="selo selo--parceiro">{rotuloModalidadeEvento[e.modalidade]}</span>
+        <span class="evento__preco">{formatarPreco(e.preco)}</span>
+      </div>
+      <h3>{e.titulo}</h3>
+      <p>{e.resumo}</p>
+      <p class="evento__quando">{formatarDataCurta(e.inicio)} · {formatarHora(e.inicio)} às {formatarHora(e.fim)} · {e.local}</p>
+    </div>
+    <span class="evento__seta" aria-hidden="true">→</span>
+  </a>
+</article>
+
+<style>
+  .evento__link { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 20px; align-items: center; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); color: var(--fg); text-decoration: none; }
+  .evento__link:hover { border-color: var(--accent); }
+  .evento__data { display: grid; place-items: center; width: 76px; height: 82px; border-radius: var(--raio); background: var(--km-grafite); color: #fff; }
+  .evento__data strong { font: 800 2rem/1 var(--f-display); }
+  .evento__data span { font: 500 0.8rem var(--f-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--km-ambar); }
+  .evento__info { display: grid; gap: 6px; min-width: 0; }
+  .evento__selos { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .evento__preco { font: 600 0.8rem var(--f-mono); color: var(--accent); }
+  .evento h3 { font-size: 1.25rem; }
+  .evento p { color: var(--muted); font-size: 0.97rem; }
+  .evento .evento__quando { font: 500 0.85rem var(--f-mono); color: var(--fg); }
+  .evento__seta { font-size: 1.4rem; color: var(--accent); }
+  @media (max-width: 560px) { .evento__link { grid-template-columns: auto minmax(0, 1fr); } .evento__seta { display: none; } }
+</style>

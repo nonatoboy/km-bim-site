@@ -1,0 +1,173 @@
+---
+import Base from '../../layouts/Base.astro';
+import { carregarConteudo } from '../../lib/conteudo';
+import {
+  formatarData, formatarHora, formatarPreco, rotuloModalidadeEvento, rotuloTipoEvento, type Evento,
+} from '../../lib/tipos';
+
+export async function getStaticPaths() {
+  const { eventos } = await carregarConteudo();
+  return eventos.map((e) => ({ params: { slug: e.slug }, props: { evento: e } }));
+}
+
+const { evento: e } = Astro.props as { evento: Evento };
+const { configuracoes: cfg, solucoes } = await carregarConteudo();
+const solucao = solucoes.find((s) => s.slug === e.solucao_relacionada);
+const limite = e.inscricoes_ate ?? e.inicio;
+---
+<Base titulo={e.titulo} descricao={e.resumo}>
+  <article class="secao">
+    <div class="container detalhe">
+      <div class="detalhe__principal">
+        <nav class="migalhas" aria-label="Você está em"><a href="/eventos">Eventos</a> / {rotuloTipoEvento[e.tipo]}</nav>
+        <div class="selos">
+          <span class="selo selo--propria">{rotuloTipoEvento[e.tipo]}</span>
+          <span class="selo selo--parceiro">{rotuloModalidadeEvento[e.modalidade]}</span>
+        </div>
+        <h1>{e.titulo}</h1>
+        <p class="lead">{e.resumo}</p>
+        {e.imagem && <img class="arte" src={e.imagem} alt="" loading="lazy" />}
+        {e.descricao && <div class="texto descricao">{e.descricao.split(/\n\s*\n/).map((par) => <p>{par}</p>)}</div>}
+        {e.publico_alvo && (
+          <div class="bloco"><h2>Para quem é</h2><p class="texto">{e.publico_alvo}</p></div>
+        )}
+        <div class="bloco">
+          <h2>Quem conduz</h2>
+          <p class="texto"><strong>{e.palestrante}</strong>{e.palestrante === cfg.socio_nome && <> · {cfg.socio_cargo} da KM BIM. Engenheiro civil pela Poli-USP, palestrante em três edições da Autodesk University.</>}</p>
+        </div>
+        {solucao && (
+          <div class="bloco"><h2>Solução relacionada</h2><p class="texto"><a href={`/solucoes/${solucao.slug}`}>{solucao.titulo}</a>: {solucao.resumo}</p></div>
+        )}
+      </div>
+
+      <aside class="lateral" id="inscricao">
+        <dl class="ficha">
+          <div><dt>Data</dt><dd>{formatarData(e.inicio)}</dd></div>
+          <div><dt>Horário</dt><dd>{formatarHora(e.inicio)} às {formatarHora(e.fim)} (Brasília)</dd></div>
+          <div><dt>Local</dt><dd>{e.local}</dd></div>
+          <div><dt>Investimento</dt><dd>{formatarPreco(e.preco)}</dd></div>
+          <div data-vagas-bloco hidden><dt>Vagas</dt><dd data-vagas></dd></div>
+        </dl>
+
+        <form id="form-inscricao" class="form" novalidate
+          data-evento={e.slug} data-evento-id={e.id} data-limite={limite} data-abertas={String(e.inscricoes_abertas)}>
+          <h2>Inscreva-se</h2>
+          <label class="campo"><span>Nome completo *</span><input id="nome" name="nome" required minlength="3" maxlength="120" autocomplete="name" /></label>
+          <label class="campo"><span>E-mail *</span><input id="email" name="email" type="email" required maxlength="200" autocomplete="email" /></label>
+          <label class="campo"><span>Telefone *</span><input id="telefone" name="telefone" type="tel" required maxlength="40" autocomplete="tel" placeholder="(11) 90000-0000" /></label>
+          <label class="campo"><span>Empresa</span><input id="empresa" name="empresa" maxlength="160" autocomplete="organization" /></label>
+          <label class="isca" aria-hidden="true">Site<input id="site" name="site" tabindex="-1" autocomplete="off" /></label>
+          <label class="consentimento">
+            <input type="checkbox" id="consentimento" required />
+            <span>Concordo com o uso dos meus dados para esta inscrição. <small>Usamos seus dados apenas para gerenciar a inscrição e enviar as informações deste evento. Não compartilhamos com terceiros, e você pode pedir a exclusão a qualquer momento.</small></span>
+          </label>
+          <p class="erro" id="erro" role="alert" hidden></p>
+          <button class="botao botao--cta" type="submit">Quero me inscrever</button>
+          <p class="nota">Você vai receber um e-mail para confirmar a inscrição.</p>
+        </form>
+
+        <div class="aviso aviso--ok" id="enviado" hidden tabindex="-1">
+          <h2>Falta só um passo</h2>
+          <p>Enviamos um e-mail para <strong data-email></strong>. Clique no link de confirmação para garantir sua vaga.</p>
+          <p class="nota">Não chegou em alguns minutos? Confira a caixa de spam ou lixo eletrônico.</p>
+        </div>
+        <div class="aviso" id="ja-confirmada" hidden tabindex="-1">
+          <h2>Você já está inscrito</h2>
+          <p>Este e-mail já tem inscrição confirmada neste evento. O link de acesso foi enviado na confirmação.</p>
+        </div>
+        <div class="aviso" id="fechado" hidden>
+          <h2 data-titulo>Inscrições encerradas</h2>
+          <p data-texto>As inscrições para este evento estão encerradas. Veja os <a href="/eventos">próximos eventos</a>.</p>
+        </div>
+      </aside>
+    </div>
+  </article>
+</Base>
+
+<script>
+  import { supabase, supabaseConfigurado } from '../../lib/supabase';
+
+  const form = document.getElementById('form-inscricao') as HTMLFormElement;
+  const erro = document.getElementById('erro')!;
+  const botao = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  const mostrar = (id: string) => { form.hidden = true; const el = document.getElementById(id)!; el.hidden = false; el.focus?.(); };
+  const fechar = (titulo: string, texto?: string) => {
+    const el = document.getElementById('fechado')!;
+    el.querySelector('[data-titulo]')!.textContent = titulo;
+    if (texto) el.querySelector('[data-texto]')!.textContent = texto;
+    mostrar('fechado');
+  };
+
+  // Estado das inscrições: data limite e flag (verificados no navegador, o site é estático)
+  if (form.dataset.abertas !== 'true' || Date.now() > new Date(form.dataset.limite!).getTime()) {
+    fechar('Inscrições encerradas');
+  } else if (supabaseConfigurado) {
+    // Vagas em tempo real
+    supabase().rpc('vagas_restantes', { p_evento: form.dataset.eventoId }).then(({ data }) => {
+      if (data === null || data === undefined) return;
+      const bloco = document.querySelector<HTMLElement>('[data-vagas-bloco]')!;
+      bloco.hidden = false;
+      bloco.querySelector('[data-vagas]')!.textContent = data > 0 ? `${data} restante${data === 1 ? '' : 's'}` : 'Esgotadas';
+      if (data === 0) fechar('Vagas esgotadas', 'Todas as vagas deste evento foram preenchidas. Veja os próximos eventos em kmbim.com.br/eventos.');
+    });
+  }
+
+  const valor = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erro.hidden = true;
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (valor('telefone').replace(/\D/g, '').length < 8) { erro.textContent = 'Informe um telefone com DDD.'; erro.hidden = false; return; }
+    if (!supabaseConfigurado) { erro.textContent = 'Inscrições indisponíveis no momento.'; erro.hidden = false; return; }
+
+    botao.disabled = true; botao.textContent = 'Enviando…';
+    const { data, error } = await supabase().functions.invoke('inscrever', {
+      body: {
+        evento: form.dataset.evento, nome: valor('nome'), email: valor('email'), telefone: valor('telefone'),
+        empresa: valor('empresa'), site: valor('site'), consentimento: (document.getElementById('consentimento') as HTMLInputElement).checked,
+      },
+    });
+    botao.disabled = false; botao.textContent = 'Quero me inscrever';
+
+    if (error) {
+      let msg = 'Não foi possível concluir a inscrição. Tente novamente em alguns minutos.';
+      try { const corpo = await (error as any).context?.json(); if (corpo?.erro) msg = corpo.erro; if (corpo?.motivo === 'lotado') return fechar('Vagas esgotadas', msg); if (corpo?.motivo === 'encerrado') return fechar('Inscrições encerradas', msg); } catch { /* sem corpo */ }
+      erro.textContent = msg; erro.hidden = false; return;
+    }
+    if (data?.situacao === 'ja_confirmada') return mostrar('ja-confirmada');
+    document.querySelector('#enviado [data-email]')!.textContent = valor('email');
+    mostrar('enviado');
+  });
+</script>
+
+<style>
+  .detalhe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: clamp(28px, 5vw, 64px); align-items: start; }
+  .detalhe__principal { display: grid; gap: 18px; justify-items: start; }
+  .migalhas { font-size: 0.9rem; color: var(--muted); }
+  .selos { display: flex; gap: 8px; flex-wrap: wrap; }
+  .lead { font-size: 1.25rem; color: var(--muted); max-width: 60ch; }
+  .arte { border-radius: var(--raio); width: 100%; }
+  .descricao { display: grid; gap: 12px; }
+  .bloco { display: grid; gap: 8px; padding-top: 8px; }
+  .bloco h2 { font-size: 1.2rem; }
+  .lateral { position: sticky; top: 96px; display: grid; gap: 18px; padding: 24px; background: var(--bg-alt); border-radius: var(--raio); }
+  .ficha { display: grid; gap: 10px; margin: 0; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .ficha div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; }
+  .ficha dt { font: 500 0.75rem var(--f-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); padding-top: 3px; }
+  .ficha dd { margin: 0; font-weight: 500; }
+  .form { display: grid; gap: 14px; }
+  .form h2, .aviso h2 { font-size: 1.3rem; }
+  .campo { display: grid; gap: 5px; font-weight: 500; font-size: 0.93rem; }
+  .campo input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #B8C6CA; border-radius: 6px; font: 400 1rem var(--f-body); color: var(--fg); background: #fff; }
+  .campo input:focus { outline: 2px solid var(--km-ciano); outline-offset: 0; border-color: var(--km-ciano); }
+  .isca { position: absolute; left: -9999px; }
+  .consentimento { display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 0.9rem; }
+  .consentimento input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--km-petroleo); }
+  .consentimento small { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+  .erro { color: var(--erro); font-weight: 500; }
+  .nota { font-size: 0.85rem; color: var(--muted); }
+  .aviso { display: grid; gap: 10px; padding: 20px; background: #fff; border-radius: var(--raio); border-left: 4px solid var(--km-ambar); }
+  .aviso--ok { border-left-color: var(--ok); }
+  @media (max-width: 900px) { .detalhe { grid-template-columns: 1fr; } .lateral { position: static; } }
+</style>

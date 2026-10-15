@@ -1,0 +1,56 @@
+---
+import Base from '../../layouts/Base.astro';
+import EventoCard from '../../components/EventoCard.astro';
+import { carregarConteudo } from '../../lib/conteudo';
+
+const { eventos } = await carregarConteudo();
+// No build: próximos em ordem crescente, anteriores do mais recente ao mais antigo.
+// No navegador, um script reposiciona o que já passou (o site é estático).
+const agora = Date.now();
+const proximos = eventos.filter((e) => new Date(e.fim).getTime() >= agora);
+const anteriores = eventos.filter((e) => new Date(e.fim).getTime() < agora).reverse();
+---
+<Base titulo="Eventos" descricao="Webinars, treinamentos e rodas de conversa da KM BIM sobre BIM aplicado a arquitetura, engenharia e construção.">
+  <section class="secao">
+    <div class="container">
+      <div class="secao__cabeca">
+        <span class="rotulo">Eventos</span>
+        <h1>Eventos KM BIM</h1>
+        <p>Webinars, treinamentos e rodas de conversa sobre BIM aplicado a projeto, obra e gestão da informação.</p>
+      </div>
+
+      <h2 class="bloco-titulo">Próximos eventos</h2>
+      <div class="lista" id="proximos">
+        {proximos.map((e) => <EventoCard evento={e} />)}
+      </div>
+      <p class="vazio" id="vazio-proximos" hidden={proximos.length > 0}>
+        Nenhum evento agendado no momento. Acompanhe a KM BIM no LinkedIn para saber dos próximos.
+      </p>
+
+      <div id="bloco-anteriores" hidden={anteriores.length === 0}>
+        <h2 class="bloco-titulo">Eventos anteriores</h2>
+        <div class="lista lista--anteriores" id="anteriores">
+          {anteriores.map((e) => <EventoCard evento={e} />)}
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  // Move para "anteriores" os eventos que terminaram depois da última publicação do site.
+  const proximos = document.getElementById('proximos')!;
+  const anteriores = document.getElementById('anteriores')!;
+  proximos.querySelectorAll<HTMLElement>('[data-fim]').forEach((el) => {
+    if (new Date(el.dataset.fim!).getTime() < Date.now()) anteriores.prepend(el);
+  });
+  document.getElementById('vazio-proximos')!.hidden = proximos.children.length > 0;
+  document.getElementById('bloco-anteriores')!.hidden = anteriores.children.length === 0;
+</script>
+
+<style>
+  .bloco-titulo { font-size: 1.4rem; margin: 8px 0 16px; }
+  .lista { display: grid; gap: 12px; margin-bottom: 40px; }
+  .lista--anteriores { opacity: .8; }
+  .vazio { padding: 24px; border: 1px dashed var(--line); border-radius: var(--raio); color: var(--muted); margin-bottom: 40px; }
+</style>

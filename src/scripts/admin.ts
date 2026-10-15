@@ -3,13 +3,39 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
-type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url';
+type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url' | 'dataHora';
 interface Campo { nome: string; rotulo: string; tipo: TipoCampo; opcoes?: [string, string][]; obrigatorio?: boolean; ajuda?: string }
-interface Tabela { nome: string; rotulo: string; chave: string; titulo: string; subtitulo?: string; campos: Campo[] }
+interface Tabela { nome: string; rotulo: string; chave: string; titulo: string; subtitulo?: string; campos: Campo[]; padrao?: Record<string, any> }
 
 const categoriasOpcoes: [string, string][] = [];
 
 const TABELAS: Tabela[] = [
+  {
+    nome: 'eventos', rotulo: 'Eventos', chave: 'id', titulo: 'titulo', subtitulo: 'inicio',
+    padrao: { tipo: 'webinar', modalidade: 'online', palestrante: 'Marcelo Nonato Santos', local: 'Microsoft Teams', inscricoes_abertas: true, ativo: true, ordem: 0 },
+    campos: [
+      { nome: 'titulo', rotulo: 'Título', tipo: 'texto', obrigatorio: true },
+      { nome: 'slug', rotulo: 'Endereço (slug)', tipo: 'texto', obrigatorio: true, ajuda: 'Letras minúsculas, números e hífens. Vira kmbim.com.br/eventos/slug, o link de divulgação.' },
+      { nome: 'tipo', rotulo: 'Tipo', tipo: 'opcoes', opcoes: [['webinar', 'Webinar'], ['treinamento', 'Treinamento'], ['roda_conversa', 'Roda de conversa'], ['workshop', 'Workshop'], ['outro', 'Outro']] },
+      { nome: 'modalidade', rotulo: 'Modalidade', tipo: 'opcoes', opcoes: [['online', 'Online'], ['presencial', 'Presencial'], ['hibrido', 'Híbrido']] },
+      { nome: 'inicio', rotulo: 'Início', tipo: 'dataHora', obrigatorio: true },
+      { nome: 'fim', rotulo: 'Término', tipo: 'dataHora', obrigatorio: true },
+      { nome: 'local', rotulo: 'Local', tipo: 'texto', ajuda: 'Ex.: Microsoft Teams, ou o endereço do evento presencial.' },
+      { nome: 'resumo', rotulo: 'Resumo (lista e compartilhamento)', tipo: 'textoLongo' },
+      { nome: 'descricao', rotulo: 'Descrição completa', tipo: 'textoLongo', ajuda: 'Deixe uma linha em branco entre parágrafos.' },
+      { nome: 'publico_alvo', rotulo: 'Para quem é', tipo: 'textoLongo' },
+      { nome: 'palestrante', rotulo: 'Quem conduz', tipo: 'texto' },
+      { nome: 'vagas', rotulo: 'Vagas', tipo: 'numero', ajuda: 'Deixe vazio para não limitar.' },
+      { nome: 'inscricoes_ate', rotulo: 'Inscrições até', tipo: 'dataHora', ajuda: 'Vazio = até o início do evento.' },
+      { nome: 'inscricoes_abertas', rotulo: 'Inscrições abertas', tipo: 'booleano' },
+      { nome: 'preco', rotulo: 'Preço (R$)', tipo: 'numero', ajuda: 'Vazio = gratuito. Pagamento online ainda não está disponível.' },
+      { nome: 'link_acesso', rotulo: 'Link de acesso (privado)', tipo: 'url', ajuda: 'Sala do Teams. Enviado só para inscritos confirmados; não aparece no site.' },
+      { nome: 'instrucoes_acesso', rotulo: 'Instruções para os confirmados (privado)', tipo: 'textoLongo', ajuda: 'Vai no e-mail de confirmação: material prévio, senha, orientações.' },
+      { nome: 'imagem', rotulo: 'Arte de divulgação', tipo: 'imagem' },
+      { nome: 'solucao_relacionada', rotulo: 'Solução relacionada (slug)', tipo: 'texto', ajuda: 'Opcional. Ex.: implantacao-bim-iso-19650' },
+      { nome: 'ativo', rotulo: 'Visível no site', tipo: 'booleano' },
+    ],
+  },
   {
     nome: 'solucoes', rotulo: 'Soluções', chave: 'id', titulo: 'titulo', subtitulo: 'categoria',
     campos: [
@@ -153,7 +179,7 @@ async function abrirPainel() {
   const { data: cats } = await db.from('categorias').select('slug, nome').order('ordem');
   categoriasOpcoes.splice(0, categoriasOpcoes.length, ...(cats ?? []).map((c) => [c.slug, c.nome] as [string, string]));
 
-  const abas: [string, string][] = [['pedidos', 'Pedidos'], ...TABELAS.map((t) => [t.nome, t.rotulo] as [string, string]), ['configuracoes', 'Textos gerais']];
+  const abas: [string, string][] = [['pedidos', 'Pedidos'], ['inscricoes', 'Inscrições'], ...TABELAS.map((t) => [t.nome, t.rotulo] as [string, string]), ['configuracoes', 'Textos gerais']];
   const nav = $('#abas');
   nav.innerHTML = abas.map(([id, r]) => `<button type="button" data-aba="${id}">${esc(r)}</button>`).join('');
   nav.addEventListener('click', (e) => {
@@ -167,8 +193,69 @@ function abrirAba(id: string) {
   abaAtual = id;
   document.querySelectorAll<HTMLButtonElement>('[data-aba]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.aba === id)));
   if (id === 'pedidos') return listarPedidos();
+  if (id === 'inscricoes') return listarInscricoes();
   if (id === 'configuracoes') return listarConfiguracoes();
   listarTabela(TABELAS.find((t) => t.nome === id)!);
+}
+
+
+// Datas: o banco guarda em UTC; o painel mostra no horário do computador (Brasília)
+const dataBr = (iso?: string | null) => iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+function paraLocal(iso?: string | null) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const z = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+}
+
+// ---------------------------------------------------------------- inscrições em eventos
+const STATUS_INSC: [string, string][] = [['pendente', 'Pendente'], ['confirmada', 'Confirmada'], ['cancelada', 'Cancelada'], ['aguardando_pagamento', 'Aguardando pagamento']];
+let eventoSelecionado = '';
+
+async function listarInscricoes() {
+  const area = $('#area');
+  const { data: eventos, error } = await db.from('eventos').select('id, titulo, inicio, vagas').order('inicio', { ascending: false });
+  if (error) { area.innerHTML = `<p class="erro">${esc(error.message)}. Rode a migration de eventos no Supabase (README).</p>`; return; }
+  if (!eventos.length) { area.innerHTML = '<div class="vazio"><h2>Nenhum evento cadastrado</h2><p>Cadastre um evento na aba Eventos.</p></div>'; return; }
+  if (!eventos.some((e) => e.id === eventoSelecionado)) eventoSelecionado = eventos[0].id;
+  const ev = eventos.find((e) => e.id === eventoSelecionado)!;
+  const { data: insc = [] } = await db.from('inscricoes_evento').select('*').eq('evento_id', ev.id).order('criado_em');
+  const conta = (st: string) => insc!.filter((i) => i.status === st).length;
+  const presentes = insc!.filter((i) => i.presente).length;
+  area.innerHTML = `
+    <header class="area__cabeca">
+      <h2>Inscrições</h2>
+      <label class="campo"><select id="sel-evento">${eventos.map((e) => `<option value="${e.id}" ${e.id === ev.id ? 'selected' : ''}>${esc(dataBr(e.inicio))} · ${esc(e.titulo)}</option>`).join('')}</select></label>
+    </header>
+    <p class="resumo-insc"><strong>${conta('confirmada')}</strong> confirmada(s)${ev.vagas ? ` de ${ev.vagas} vagas` : ''} · <strong>${conta('pendente')}</strong> pendente(s) · <strong>${conta('cancelada')}</strong> cancelada(s) · <strong>${presentes}</strong> presente(s)
+      <button type="button" class="botao botao--contorno" id="exportar">Exportar para Excel (CSV)</button></p>
+    ${insc!.length ? `<div class="tabela-insc"><table>
+      <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Empresa</th><th>Inscrição</th><th>Status</th><th>Presente</th></tr></thead>
+      <tbody>${insc!.map((i) => `<tr data-id="${i.id}">
+        <td>${esc(i.nome)}</td><td>${esc(i.email)}</td><td>${esc(i.telefone)}</td><td>${esc(i.empresa)}</td><td>${esc(dataBr(i.criado_em))}</td>
+        <td><select data-campo="status">${STATUS_INSC.map(([v, r]) => `<option value="${v}" ${v === i.status ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
+        <td><input type="checkbox" data-campo="presente" ${i.presente ? 'checked' : ''} aria-label="Presente"></td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="vazio"><p>Nenhuma inscrição neste evento ainda.</p></div>'}`;
+  $('#sel-evento').addEventListener('change', (e) => { eventoSelecionado = (e.target as HTMLSelectElement).value; listarInscricoes(); });
+  area.querySelectorAll<HTMLElement>('[data-campo]').forEach((el) => el.addEventListener('change', async () => {
+    const id = el.closest('tr')!.dataset.id!;
+    const campo = el.dataset.campo!;
+    const valor = campo === 'presente' ? (el as HTMLInputElement).checked : (el as HTMLSelectElement).value;
+    const extra: Record<string, any> = campo === 'status' && valor === 'confirmada' ? { confirmado_em: new Date().toISOString() } : campo === 'status' && valor === 'cancelada' ? { cancelado_em: new Date().toISOString() } : {};
+    const { error: e } = await db.from('inscricoes_evento').update({ [campo]: valor, ...extra }).eq('id', id);
+    if (e) aviso(e.message, 'erro'); else { aviso('Inscrição atualizada.'); listarInscricoes(); }
+  }));
+  area.querySelector('#exportar')?.addEventListener('click', () => {
+    const cab = ['Nome', 'E-mail', 'Telefone', 'Empresa', 'Status', 'Presente', 'Inscrição', 'Confirmação'];
+    const linhas = insc!.map((i) => [i.nome, i.email, i.telefone, i.empresa, STATUS_INSC.find(([v]) => v === i.status)?.[1] ?? i.status, i.presente ? 'Sim' : 'Não', dataBr(i.criado_em), dataBr(i.confirmado_em)]);
+    // Ponto e vírgula e BOM: abre direto no Excel em português com acentos corretos
+    const csv = '\uFEFF' + [cab, ...linhas].map((l) => l.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `inscricoes-${ev.titulo.normalize('NFD').replace(/[^\w]+/g, '-').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 }
 
 // ---------------------------------------------------------------- pedidos
@@ -240,14 +327,14 @@ async function listarConfiguracoes() {
 // ---------------------------------------------------------------- tabelas de conteúdo
 async function listarTabela(t: Tabela) {
   const area = $('#area');
-  const { data, error } = await db.from(t.nome).select('*').order('ordem');
+  const { data, error } = await db.from(t.nome).select('*').order(t.nome === 'eventos' ? 'inicio' : 'ordem', { ascending: t.nome !== 'eventos' });
   if (error) { area.innerHTML = `<p class="erro">${esc(error.message)}</p>`; return; }
   area.innerHTML = `
     <header class="area__cabeca"><h2>${esc(t.rotulo)}</h2><button type="button" class="botao botao--cta" id="novo">Adicionar</button></header>
     ${data.length ? `<ul class="itens">${data.map((l) => `
       <li><button type="button" data-editar="${esc(l[t.chave])}">
         <strong>${esc(l[t.titulo])}</strong>
-        <span>${esc(t.subtitulo ? l[t.subtitulo] : '')}${l.ativo === false ? ' · <em>oculto</em>' : ''}${t.nome === 'depoimentos' && !l.autorizado ? ' · <em>sem autorização</em>' : ''}</span>
+        <span>${esc(t.subtitulo ? (t.subtitulo === 'inicio' ? dataBr(l.inicio) : l[t.subtitulo]) : '')}${l.ativo === false ? ' · <em>oculto</em>' : ''}${t.nome === 'depoimentos' && !l.autorizado ? ' · <em>sem autorização</em>' : ''}</span>
       </button></li>`).join('')}</ul>` : '<div class="vazio"><p>Nenhum item cadastrado.</p></div>'}
     <div id="editor"></div>`;
   $('#novo').addEventListener('click', () => editar(t, null));
@@ -270,7 +357,9 @@ function campoHtml(c: Campo, v: any) {
     case 'opcoes':
       return `<label class="campo"><span>${esc(c.rotulo)}</span><select id="${id}" name="${c.nome}" ${req}>${(c.opcoes ?? []).map(([o, r]) => `<option value="${esc(o)}" ${o === v ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>${ajuda}</label>`;
     case 'numero':
-      return `<label class="campo campo--curto"><span>${esc(c.rotulo)}</span><input type="number" id="${id}" name="${c.nome}" value="${esc(v)}"></label>`;
+      return `<label class="campo campo--curto"><span>${esc(c.rotulo)}</span><input type="number" step="any" min="0" id="${id}" name="${c.nome}" value="${esc(v)}">${ajuda}</label>`;
+    case 'dataHora':
+      return `<label class="campo campo--curto"><span>${esc(c.rotulo)}</span><input type="datetime-local" id="${id}" name="${c.nome}" value="${esc(paraLocal(v))}" ${req}>${ajuda}</label>`;
     case 'imagem':
       return `<div class="campo"><label for="${id}">${esc(c.rotulo)}</label>
         <div class="imagem">${v ? `<img src="${esc(v)}" alt="">` : ''}<input id="${id}" name="${c.nome}" value="${esc(v)}" placeholder="URL da imagem">
@@ -287,7 +376,7 @@ function campoHtml(c: Campo, v: any) {
 function editar(t: Tabela, linha: Record<string, any> | null) {
   const ed = $('#editor');
   const novo = !linha;
-  const padrao: Record<string, any> = { ativo: true, ordem: 0, modalidade: 'propria', tipo: 'formacao', categoria: categoriasOpcoes[0]?.[0] };
+  const padrao: Record<string, any> = t.padrao ?? { ativo: true, ordem: 0, modalidade: 'propria', tipo: 'formacao', categoria: categoriasOpcoes[0]?.[0] };
   const v = (n: string) => (linha ? linha[n] : padrao[n]);
   ed.innerHTML = `
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-titulo">
@@ -327,6 +416,7 @@ function editar(t: Tabela, linha: Record<string, any> | null) {
       const el = form.elements.namedItem(c.nome) as HTMLInputElement;
       if (c.tipo === 'booleano') dados[c.nome] = el.checked;
       else if (c.tipo === 'numero') dados[c.nome] = el.value === '' ? (c.nome === 'ordem' ? 0 : null) : Number(el.value);
+      else if (c.tipo === 'dataHora') dados[c.nome] = el.value ? new Date(el.value).toISOString() : null;
       else if (c.tipo === 'lista') dados[c.nome] = el.value.split('\n').map((s) => s.trim()).filter(Boolean);
       else dados[c.nome] = el.value.trim();
     }

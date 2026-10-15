@@ -7,7 +7,7 @@ import type { Conteudo } from './tipos';
 let cache: Promise<Conteudo> | null = null;
 
 export function carregarConteudo(): Promise<Conteudo> {
-  cache ??= supabaseConfigurado ? doBanco() : Promise.resolve(inicial as Conteudo);
+  cache ??= supabaseConfigurado ? doBanco() : Promise.resolve({ eventos: [], ...inicial } as Conteudo);
   return cache;
 }
 
@@ -25,7 +25,7 @@ async function doBanco(): Promise<Conteudo> {
   const { data: cfg, error } = await db.from('configuracoes').select('chave, valor');
   if (error) throw new Error(`Supabase: erro ao ler configuracoes: ${error.message}`);
 
-  const [categorias, solucoes, parceiros, palestras, publicacoes, reconhecimentos, depoimentos] = await Promise.all([
+  const [categorias, solucoes, parceiros, palestras, publicacoes, reconhecimentos, depoimentos, eventos] = await Promise.all([
     lista<Conteudo['categorias'][number]>('categorias', 'slug, nome, descricao, ordem'),
     lista<Conteudo['solucoes'][number]>('solucoes', 'slug, titulo, resumo, descricao, entregaveis, publico, categoria, modalidade, destaque, ordem'),
     lista<Conteudo['parceiros'][number]>('parceiros', 'nome, descricao, logo, site, solucoes, ordem'),
@@ -33,11 +33,15 @@ async function doBanco(): Promise<Conteudo> {
     lista<Conteudo['publicacoes'][number]>('publicacoes', 'titulo, veiculo, ano, link, ordem'),
     lista<Conteudo['reconhecimentos'][number]>('reconhecimentos', 'tipo, titulo, descricao, ano, ordem'),
     lista<Conteudo['depoimentos'][number]>('depoimentos', 'autor, cargo, empresa, texto, foto, ordem'),
+    // Só colunas públicas (o link de acesso não é legível pelo site)
+    // Tolerante: enquanto a migration de eventos não for aplicada, o site publica sem a seção.
+    lista<Conteudo['eventos'][number]>('eventos', 'id, slug, titulo, tipo, modalidade, resumo, descricao, publico_alvo, palestrante, local, inicio, fim, vagas, inscricoes_abertas, inscricoes_ate, preco, imagem, solucao_relacionada, ordem', (q) => q.order('inicio'))
+      .catch((e) => { console.warn(`[eventos] ${e.message}`); return []; }),
   ]);
 
   return {
     // Chaves ausentes no banco caem no texto inicial.
     configuracoes: { ...inicial.configuracoes, ...Object.fromEntries((cfg ?? []).map((c) => [c.chave, c.valor])) },
-    categorias, solucoes, parceiros, palestras, publicacoes, reconhecimentos, depoimentos,
+    categorias, solucoes, parceiros, palestras, publicacoes, reconhecimentos, depoimentos, eventos,
   };
 }

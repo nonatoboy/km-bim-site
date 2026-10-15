@@ -12,7 +12,7 @@ Painel /admin ──edita──▶ Supabase (banco + imagens)
 Formulário /orcamento ──grava──▶ Supabase (pedidos_orcamento)
 ```
 
-- **Páginas:** início, soluções (catálogo com seleção), detalhe de cada solução, quem somos, solicitar orçamento, 404 e painel.
+- **Páginas:** início, soluções (catálogo com seleção), detalhe de cada solução, eventos (lista, página com inscrição e confirmação), quem somos, solicitar orçamento, 404 e painel.
 - **Conteúdo editável no painel:** soluções, etapas, parceiros, palestras, publicações, trajetória, depoimentos, textos gerais e pedidos de orçamento.
 - **Marca:** logotipo, cores e tipografia em [`brand/`](brand/README.md).
 
@@ -80,6 +80,43 @@ GitHub → **Actions → Publicar site → Run workflow**. Em cerca de 2 minutos
 O botão **Publicar alterações** do painel também gera esse .zip.
 
 Se o envio FTP falhar mesmo assim com erro de TLS, troque `protocol: ftps` por `protocol: ftp` em `.github/workflows/publicar.yml`.
+
+## Eventos (webinars, treinamentos, rodas de conversa)
+
+Cada evento ganha uma página com formulário em `kmbim.com.br/eventos/{slug}`. A pessoa se inscreve, recebe um e-mail para **confirmar**, e só depois da confirmação recebe o **link de acesso** e o convite de agenda (.ics). As inscrições aparecem no painel, na aba **Inscrições**, com exportação para Excel.
+
+### Configuração (uma vez)
+
+1. **Banco:** no SQL Editor do Supabase, rode [`supabase/migrations/20261015000000_eventos.sql`](supabase/migrations/20261015000000_eventos.sql).
+2. **Resend (envio de e-mails):**
+   1. Crie a conta em https://resend.com (plano gratuito: 3.000 e-mails/mês).
+   2. **Domains → Add Domain** → `kmbim.com.br`. O Resend mostra 3 ou 4 registros DNS (MX e TXT no subdomínio `send`, e o TXT `resend._domainkey`).
+   3. No hPanel da Hostinger: **Domínios → kmbim.com.br → DNS / Nameservers** → adicione exatamente os registros mostrados. Eles ficam em subdomínios próprios e **não mexem** no e-mail da Microsoft.
+   4. Volte ao Resend e clique em **Verify DNS Records** (pode levar de minutos a algumas horas).
+   5. **API Keys → Create API Key** (permissão *Sending access*). Copie a chave (`re_...`).
+3. **Funções no Supabase** (Edge Functions → Deploy a new function → Via Editor), uma para cada arquivo:
+   - nome `inscrever` → [`supabase/functions/inscrever/index.ts`](supabase/functions/inscrever/index.ts)
+   - nome `inscricao` → [`supabase/functions/inscricao/index.ts`](supabase/functions/inscricao/index.ts)
+
+   Nas duas, abra **Details/Settings** e **desligue "Verify JWT"**: elas são chamadas por visitantes do site e fazem as próprias validações.
+4. **Segredos** (Edge Functions → Secrets):
+
+   | Nome | Valor |
+   | --- | --- |
+   | `RESEND_API_KEY` | a chave `re_...` |
+   | `EMAIL_REMETENTE` | `KM BIM Eventos <eventos@kmbim.com.br>` |
+   | `EMAIL_RESPOSTA` | `contato@kmbim.com.br` |
+   | `EMAIL_AVISO` | `contato@kmbim.com.br` (recebe aviso de cada inscrição confirmada) |
+   | `SITE_URL` | `https://kmbim.com.br` |
+
+5. Publique o site. O item **Eventos** aparece no menu.
+
+### Uso
+- **Criar evento:** painel → **Eventos → Adicionar**. O campo *Link de acesso* (sala do Teams) é privado: vai só no e-mail dos confirmados.
+- **Divulgar:** use o link `kmbim.com.br/eventos/{slug}`.
+- Cada evento novo precisa de **Publicar alterações** para a página existir. Inscrições, vagas e confirmações funcionam em tempo real, sem publicar.
+- **Acompanhar:** painel → **Inscrições** → escolha o evento. Dá para mudar status, marcar presença e exportar para Excel.
+- **Eventos pagos:** o campo *Preço* já existe e aparece no site, mas o pagamento online ainda não está integrado; combine o pagamento por fora por enquanto.
 
 ## Desenvolvimento local
 

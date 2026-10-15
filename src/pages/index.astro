@@ -2,9 +2,12 @@
 import Base from '../layouts/Base.astro';
 import SolucaoCard from '../components/SolucaoCard.astro';
 import BarraSelecao from '../components/BarraSelecao.astro';
+import EventoCard from '../components/EventoCard.astro';
 import { carregarConteudo } from '../lib/conteudo';
 
-const { configuracoes: cfg, categorias, solucoes, parceiros, depoimentos } = await carregarConteudo();
+const { configuracoes: cfg, categorias, solucoes, parceiros, depoimentos, eventos } = await carregarConteudo();
+// Até 3 próximos eventos; o script da página esconde os que já passaram desde a publicação.
+const proximosEventos = eventos.filter((e) => new Date(e.fim).getTime() >= Date.now()).slice(0, 3);
 const nomeCategoria = Object.fromEntries(categorias.map((c) => [c.slug, c.nome]));
 const destaques = solucoes.filter((s) => s.destaque).slice(0, 6);
 const contagem = (slug: string) => solucoes.filter((s) => s.categoria === slug).length;
@@ -42,6 +45,18 @@ const contagem = (slug: string) => solucoes.filter((s) => s.categoria === slug).
       </svg>
     </div>
   </section>
+
+  {proximosEventos.length > 0 && (
+    <section class="secao secao--eventos" id="proximos-eventos">
+      <div class="container">
+        <div class="eventos-cabeca">
+          <div><span class="rotulo">Agenda</span><h2>Próximos eventos</h2></div>
+          <a href="/eventos">Todos os eventos →</a>
+        </div>
+        <div class="eventos-lista">{proximosEventos.map((e) => <EventoCard evento={e} />)}</div>
+      </div>
+    </section>
+  )}
 
   <section class="secao">
     <div class="container">
@@ -141,7 +156,21 @@ const contagem = (slug: string) => solucoes.filter((s) => s.categoria === slug).
   <BarraSelecao />
 </Base>
 
+<script>
+  // Esconde eventos que já terminaram desde a última publicação do site
+  const secao = document.getElementById('proximos-eventos');
+  if (secao) {
+    secao.querySelectorAll<HTMLElement>('[data-fim]').forEach((el) => { if (new Date(el.dataset.fim!).getTime() < Date.now()) el.remove(); });
+    if (!secao.querySelector('[data-fim]')) secao.hidden = true;
+  }
+</script>
+
 <style>
+  .secao--eventos { padding-block: 48px; border-bottom: 1px solid var(--line); }
+  .eventos-cabeca { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .eventos-cabeca > div { display: grid; gap: 8px; }
+  .eventos-cabeca a { font-weight: 600; }
+  .eventos-lista { display: grid; gap: 12px; }
   .hero { background: var(--km-grafite); color: var(--km-nevoa); overflow: hidden; }
   .hero__grade { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 32px; align-items: center; padding-block: clamp(56px, 8vw, 104px); }
   .hero__texto { display: grid; gap: 22px; }
