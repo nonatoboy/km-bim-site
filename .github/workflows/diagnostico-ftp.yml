@@ -1,29 +1,36 @@
 name: Diagnóstico FTP
 
-# Só lista pastas da conta FTP (não altera nada). Execução manual.
+# Envia um arquivo-marcador por FTP e verifica se ele aparece em https://kmbim.com.br.
+# Não altera o site (o marcador é apagado no final). Execução manual.
 on:
   workflow_dispatch:
 
 jobs:
-  listar:
+  testar:
     runs-on: ubuntu-latest
     steps:
-      - name: Listar pastas da conta FTP
+      - name: Testar se a conta FTP grava na pasta do site
         env:
           BRUTO: ${{ secrets.FTP_SERVER }}
           USUARIO: ${{ secrets.FTP_USERNAME }}
           SENHA: ${{ secrets.FTP_PASSWORD }}
         run: |
           HOST=$(printf '%s' "$BRUTO" | tr -d '[:space:]' | sed -E 's#^[a-zA-Z]+://##; s#/.*$##; s#:[0-9]+$##')
-          echo "::add-mask::$HOST"
-          echo "== Endereços =="
-          echo "FTP_SERVER é um IP? $(printf '%s' "$HOST" | grep -Eq '^[0-9.]+$' && echo sim || echo 'não (hostname)')"
-          echo "IP do servidor FTP usado: $(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}')"
-          echo "IP do site kmbim.com.br:  $(getent ahostsv4 kmbim.com.br | awk 'NR==1{print $1}')"
-          echo "IP de ftp.kmbim.com.br:   $(getent ahostsv4 ftp.kmbim.com.br | awk 'NR==1{print $1}')"
-          echo "== Pasta inicial do login (PWD) =="
-          curl -sS -v --ssl-reqd -k --user "$USUARIO:$SENHA" "ftp://$HOST/" -o /dev/null 2>&1 | grep -E '^< 257' || true
-          for p in "" "public_html/" "domains/" "domains/kmbim.com.br/" "domains/kmbim.com.br/public_html/"; do
-            echo "== ./$p =="
-            curl -sS --ssl-reqd -k --user "$USUARIO:$SENHA" "ftp://$HOST/$p" 2>&1 | head -40 || true
-          done
+          U=$(printf '%s' "$USUARIO" | tr -d '[:space:]')
+          echo "== Conferência dos segredos (sem revelar valores) =="
+          echo "FTP_SERVER é o IP 147.93.37.70? $([ "$HOST" = "147.93.37.70" ] && echo SIM || echo NÃO)"
+          echo "FTP_USERNAME é u386480918? $([ "$U" = "u386480918" ] && echo SIM || echo "NÃO (tem ${#U} caracteres; começa com '${U:0:1}')")"
+          echo "FTP_USERNAME tinha espaços extras? $([ "$U" = "$USUARIO" ] && echo não || echo SIM)"
+          MARCA="km-ftp-teste-$GITHUB_RUN_ID.txt"
+          echo "teste $GITHUB_RUN_ID" > "$MARCA"
+          echo "== Pasta inicial =="
+          curl -sS -v --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" -o /dev/null 2>&1 | grep -E '^< 257' || true
+          echo "== Enviando marcador =="
+          curl -sS --ssl-reqd -k --user "$U:$SENHA" -T "$MARCA" "ftp://$HOST/$MARCA" && echo enviado
+          sleep 3
+          echo "== O site enxerga o marcador? =="
+          CODIGO=$(curl -s -o resposta.txt -w '%{http_code}' "https://kmbim.com.br/$MARCA")
+          echo "HTTP $CODIGO"; [ "$CODIGO" = "200" ] && echo "RESULTADO: a conta FTP grava na pasta do site" || echo "RESULTADO: a conta FTP grava em OUTRA pasta"
+          echo "== Página inicial do site =="
+          curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://kmbim.com.br/
+          curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" -Q "DELE $MARCA" -o /dev/null && echo "marcador apagado"
