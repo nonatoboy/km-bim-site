@@ -14,6 +14,7 @@ jobs:
           BRUTO: ${{ secrets.FTP_SERVER }}
           USUARIO: ${{ secrets.FTP_USERNAME }}
           SENHA: ${{ secrets.FTP_PASSWORD }}
+        shell: bash
         run: |
           HOST=$(printf '%s' "$BRUTO" | tr -d '[:space:]' | sed -E 's#^[a-zA-Z]+://##; s#/.*$##; s#:[0-9]+$##')
           U=$(printf '%s' "$USUARIO" | tr -d '[:space:]')
@@ -36,7 +37,7 @@ jobs:
           curl -sS --ssl-reqd -k --user "$U:$SENHA" -T teste.html "ftp://$HOST/teste.html" && echo enviado
           sleep 5
           curl -s -o /dev/null -w 'teste.html: HTTP %{http_code}\n' "https://kmbim.com.br/teste.html?nocache=$GITHUB_RUN_ID"
-          curl -s -o /dev/null -w 'teste.html (www): HTTP %{http_code}\n' "https://www.kmbim.com.br/teste.html?nocache=$GITHUB_RUN_ID"
+          curl -s -o /dev/null -w 'teste.html (www): HTTP %{http_code}\n' "https://www.kmbim.com.br/teste.html?nocache=$GITHUB_RUN_ID" || echo 'www.kmbim.com.br não existe no DNS'
           curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" -Q "DELE teste.html" -o /dev/null && echo "teste.html apagado"
           echo "== Pastas na raiz do FTP (com datas) =="
           curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" | awk '{print $6, $7, $8, $9}'
