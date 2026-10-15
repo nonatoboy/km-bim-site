@@ -31,6 +31,21 @@ jobs:
           echo "== O site enxerga o marcador? =="
           CODIGO=$(curl -s -o resposta.txt -w '%{http_code}' "https://kmbim.com.br/$MARCA")
           echo "HTTP $CODIGO"; [ "$CODIGO" = "200" ] && echo "RESULTADO: a conta FTP grava na pasta do site" || echo "RESULTADO: a conta FTP grava em OUTRA pasta"
+          echo "== Teste com teste.html (sugestão do suporte), com e sem cache =="
+          echo "<p>teste $GITHUB_RUN_ID</p>" > teste.html
+          curl -sS --ssl-reqd -k --user "$U:$SENHA" -T teste.html "ftp://$HOST/teste.html" && echo enviado
+          sleep 5
+          curl -s -o /dev/null -w 'teste.html: HTTP %{http_code}\n' "https://kmbim.com.br/teste.html?nocache=$GITHUB_RUN_ID"
+          curl -s -o /dev/null -w 'teste.html (www): HTTP %{http_code}\n' "https://www.kmbim.com.br/teste.html?nocache=$GITHUB_RUN_ID"
+          curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" -Q "DELE teste.html" -o /dev/null && echo "teste.html apagado"
+          echo "== Pastas na raiz do FTP (com datas) =="
+          curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" | awk '{print $6, $7, $8, $9}'
+          echo "== O FTP tem a pasta 'assinatura' (enviada à mão pelo Gerenciador)? =="
+          curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" | grep -q ' assinatura$' && echo "SIM" || echo "NÃO"
+          echo "== O site serve /assinatura/? =="
+          curl -s -o /dev/null -w 'HTTP %{http_code}\n' "https://kmbim.com.br/assinatura/"
+          echo "== Cabeçalhos do site (servidor/CDN) =="
+          curl -sI "https://kmbim.com.br/" | grep -iE '^(server|x-|platform|panel|cf-|via|age):' || true
           echo "== Página inicial do site =="
           curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://kmbim.com.br/
           curl -sS --ssl-reqd -k --user "$U:$SENHA" "ftp://$HOST/" -Q "DELE $MARCA" -o /dev/null && echo "marcador apagado"
