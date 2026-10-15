@@ -55,7 +55,7 @@ No repositório: **Settings → Secrets and variables → Actions → New reposi
 | `PUBLIC_SUPABASE_URL` | Project URL do passo 1.3 |
 | `PUBLIC_SUPABASE_ANON_KEY` | chave anon public do passo 1.3 |
 | `FTP_SERVER` | hPanel → Arquivos → Contas FTP → **Servidor FTP** (IP ou `ftp.kmbim.com.br`) |
-| `FTP_USERNAME` | usuário FTP (mesma tela) |
+| `FTP_USERNAME` | `u386480918.ftpkm_bim`: conta FTP adicional, ligada à pasta publicada do domínio. **Não use** a conta principal `u386480918`: ela grava numa pasta que o site não serve |
 | `FTP_PASSWORD` | senha FTP (mesma tela; redefina se não souber) |
 | `FTP_SERVER_DIR` | opcional; padrão `./` (a conta FTP da Hostinger já abre dentro de `public_html`). Use o workflow **Diagnóstico FTP** para ver as pastas da conta |
 
@@ -71,7 +71,7 @@ GitHub → **Actions → Publicar site → Run workflow**. Em cerca de 2 minutos
 - cada commit na branch `main` publica automaticamente;
 - o botão **Publicar alterações** no painel (`kmbim.com.br/admin`) publica depois de editar conteúdo.
 
-### Envio manual (enquanto o FTP automático não estiver resolvido)
+### Envio manual (alternativa, se o envio automático falhar)
 
 1. GitHub → **Actions** → execução mais recente de **Publicar site** → seção **Artifacts** → baixe **site-kmbim** (.zip).
 2. hPanel → **Gerenciador de arquivos** → entre em **public_html** → selecione tudo e exclua.
