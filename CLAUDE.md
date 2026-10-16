@@ -25,3 +25,7 @@ Site da KM Consultoria BIM Ltda (kmbim.com.br). Conteúdo e interface em portugu
 - Cores e fontes só pelos tokens de `src/styles/global.css`; a paleta oficial está em `brand/README.md`.
 - Textos do site: diretos, sem jargão de marketing, sem citar clientes ou ex-empregadores pelo nome.
 - Ao adicionar coluna de conteúdo: migration + `src/lib/tipos.ts` + `src/lib/conteudo.ts` + campo em `TABELAS` de `src/scripts/admin.ts` + `conteudo-inicial.json` e `npm run seed`.
+
+## Skills do projeto
+
+- `criar-evento` (`.claude/skills/criar-evento/SKILL.md`): planejar um evento, redigir textos, gerar artes (`brand/scripts/gerar-arte-evento.cjs`) e montar a ficha do painel. Material de cada evento fica em `brand/eventos/{slug}/`.
