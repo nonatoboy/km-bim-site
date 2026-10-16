@@ -116,6 +116,7 @@ Cada evento ganha uma página com formulário em `kmbim.com.br/eventos/{slug}`. 
 - **Divulgar:** use o link `kmbim.com.br/eventos/{slug}`.
 - Cada evento novo precisa de **Publicar alterações** para a página existir. Inscrições, vagas e confirmações funcionam em tempo real, sem publicar.
 - **Acompanhar:** painel → **Inscrições** → escolha o evento. Dá para mudar status, marcar presença e exportar para Excel.
+- **Lista de espera:** com as vagas preenchidas, o formulário continua aberto e mostra a posição prevista na fila. Quem confirma o e-mail entra na lista de espera (e recebe a posição por e-mail). Quando uma vaga é liberada (a pessoa cancela pelo link do e-mail, você muda o status no painel para *Cancelada* ou aumenta as vagas do evento), o primeiro da fila é confirmado automaticamente e recebe o e-mail com o link de acesso e o convite. Migration: [`supabase/migrations/20261016000000_lista_espera.sql`](supabase/migrations/20261016000000_lista_espera.sql).
 - **Eventos pagos:** o campo *Preço* já existe e aparece no site, mas o pagamento online ainda não está integrado; combine o pagamento por fora por enquanto.
 
 ## Desenvolvimento local

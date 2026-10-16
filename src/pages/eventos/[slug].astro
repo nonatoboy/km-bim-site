@@ -51,7 +51,8 @@ const limite = e.inscricoes_ate ?? e.inicio;
 
         <form id="form-inscricao" class="form" novalidate
           data-evento={e.slug} data-evento-id={e.id} data-limite={limite} data-abertas={String(e.inscricoes_abertas)}>
-          <h2>Inscreva-se</h2>
+          <h2 data-form-titulo>Inscreva-se</h2>
+          <p class="aviso-espera" data-aviso-espera hidden>As vagas estão preenchidas, mas você ainda pode se inscrever na <strong>lista de espera</strong>. Sua posição será a <strong data-posicao></strong>. Se alguém desistir, a vaga passa para o próximo da lista e avisamos por e-mail.</p>
           <label class="campo"><span>Nome completo *</span><input id="nome" name="nome" required minlength="3" maxlength="120" autocomplete="name" /></label>
           <label class="campo"><span>E-mail *</span><input id="email" name="email" type="email" required maxlength="200" autocomplete="email" /></label>
           <label class="campo"><span>Telefone *</span><input id="telefone" name="telefone" type="tel" required maxlength="40" autocomplete="tel" placeholder="(11) 90000-0000" /></label>
@@ -63,17 +64,22 @@ const limite = e.inscricoes_ate ?? e.inicio;
           </label>
           <p class="erro" id="erro" role="alert" hidden></p>
           <button class="botao botao--cta" type="submit">Quero me inscrever</button>
-          <p class="nota">Você vai receber um e-mail para confirmar a inscrição.</p>
+          <p class="nota" data-nota-form>Você vai receber um e-mail para confirmar a inscrição.</p>
         </form>
 
         <div class="aviso aviso--ok" id="enviado" hidden tabindex="-1">
           <h2>Falta só um passo</h2>
-          <p>Enviamos um e-mail para <strong data-email></strong>. Clique no link de confirmação para garantir sua vaga.</p>
+          <p data-texto-vaga>Enviamos um e-mail para <strong data-email></strong>. Clique no link de confirmação para garantir sua vaga.</p>
+          <p data-texto-espera hidden>Enviamos um e-mail para <strong data-email></strong>. Clique no link de confirmação para entrar na <strong>lista de espera</strong>, na posição <strong data-posicao></strong> (prevista).</p>
           <p class="nota">Não chegou em alguns minutos? Confira a caixa de spam ou lixo eletrônico.</p>
         </div>
         <div class="aviso" id="ja-confirmada" hidden tabindex="-1">
           <h2>Você já está inscrito</h2>
           <p>Este e-mail já tem inscrição confirmada neste evento. O link de acesso foi enviado na confirmação.</p>
+        </div>
+        <div class="aviso" id="ja-espera" hidden tabindex="-1">
+          <h2>Você já está na lista de espera</h2>
+          <p>Este e-mail já está na lista de espera deste evento, na posição <strong data-posicao></strong>. Se uma vaga for liberada, avisamos por e-mail.</p>
         </div>
         <div class="aviso" id="fechado" hidden>
           <h2 data-titulo>Inscrições encerradas</h2>
@@ -102,15 +108,29 @@ const limite = e.inscricoes_ate ?? e.inicio;
   if (form.dataset.abertas !== 'true' || Date.now() > new Date(form.dataset.limite!).getTime()) {
     fechar('Inscrições encerradas');
   } else if (supabaseConfigurado) {
-    // Vagas em tempo real
-    supabase().rpc('vagas_restantes', { p_evento: form.dataset.eventoId }).then(({ data }) => {
-      if (data === null || data === undefined) return;
-      const bloco = document.querySelector<HTMLElement>('[data-vagas-bloco]')!;
-      bloco.hidden = false;
-      bloco.querySelector('[data-vagas]')!.textContent = data > 0 ? `${data} restante${data === 1 ? '' : 's'}` : 'Esgotadas';
-      if (data === 0) fechar('Vagas esgotadas', 'Todas as vagas deste evento foram preenchidas. Veja os próximos eventos em kmbim.com.br/eventos.');
-    });
+    // Vagas em tempo real. Esgotadas (ou com fila formada): o formulário vira inscrição na lista de espera.
+    const id = form.dataset.eventoId;
+    Promise.all([supabase().rpc('vagas_restantes', { p_evento: id }), supabase().rpc('lista_espera_total', { p_evento: id })])
+      .then(([{ data }, { data: fila }]) => {
+        if (data === null || data === undefined) return;
+        const naFila = typeof fila === 'number' ? fila : 0;
+        const bloco = document.querySelector<HTMLElement>('[data-vagas-bloco]')!;
+        bloco.hidden = false;
+        bloco.querySelector('[data-vagas]')!.textContent = data > 0
+          ? `${data} restante${data === 1 ? '' : 's'}`
+          : `Esgotadas${naFila ? ` · ${naFila} na lista de espera` : ''}`;
+        if (data === 0 || naFila > 0) modoEspera(naFila + 1);
+      });
   }
+
+  function modoEspera(posicao: number) {
+    document.querySelector('[data-form-titulo]')!.textContent = 'Lista de espera';
+    document.querySelector<HTMLElement>('[data-aviso-espera]')!.hidden = false;
+    document.querySelectorAll('[data-posicao]').forEach((el) => { el.textContent = `${posicao}ª`; });
+    document.querySelector('[data-nota-form]')!.textContent = 'Você vai receber um e-mail para confirmar a entrada na lista de espera.';
+    botao.textContent = textoBotao = 'Entrar na lista de espera';
+  }
+  let textoBotao = 'Quero me inscrever';
 
   const valor = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
 
@@ -128,7 +148,7 @@ const limite = e.inscricoes_ate ?? e.inicio;
         empresa: valor('empresa'), site: valor('site'), consentimento: (document.getElementById('consentimento') as HTMLInputElement).checked,
       },
     });
-    botao.disabled = false; botao.textContent = 'Quero me inscrever';
+    botao.disabled = false; botao.textContent = textoBotao;
 
     if (error) {
       let msg = 'Não foi possível concluir a inscrição. Tente novamente em alguns minutos.';
@@ -136,7 +156,16 @@ const limite = e.inscricoes_ate ?? e.inicio;
       erro.textContent = msg; erro.hidden = false; return;
     }
     if (data?.situacao === 'ja_confirmada') return mostrar('ja-confirmada');
-    document.querySelector('#enviado [data-email]')!.textContent = valor('email');
+    if (data?.situacao === 'ja_lista_espera') {
+      document.querySelector('#ja-espera [data-posicao]')!.textContent = `${data.posicao}ª`;
+      return mostrar('ja-espera');
+    }
+    if (data?.lista_espera) {
+      document.querySelector<HTMLElement>('[data-texto-vaga]')!.hidden = true;
+      document.querySelector<HTMLElement>('[data-texto-espera]')!.hidden = false;
+      document.querySelector('[data-texto-espera] [data-posicao]')!.textContent = `${data.posicao}ª`;
+    }
+    document.querySelectorAll('#enviado [data-email]').forEach((el) => { el.textContent = valor('email'); });
     mostrar('enviado');
   });
 </script>
@@ -169,5 +198,6 @@ const limite = e.inscricoes_ate ?? e.inicio;
   .nota { font-size: 0.85rem; color: var(--muted); }
   .aviso { display: grid; gap: 10px; padding: 20px; background: #fff; border-radius: var(--raio); border-left: 4px solid var(--km-ambar); }
   .aviso--ok { border-left-color: var(--ok); }
+  .aviso-espera { padding: 12px 14px; background: #FFF6E8; border-left: 4px solid var(--km-ambar); border-radius: 6px; font-size: 0.93rem; }
   @media (max-width: 900px) { .detalhe { grid-template-columns: 1fr; } .lateral { position: static; } }
 </style>

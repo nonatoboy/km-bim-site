@@ -1,10 +1,13 @@
 // Edge Function "inscricao": confirma ou cancela uma inscrição a partir do link enviado por e-mail.
 // Na confirmação, envia o link de acesso com convite de agenda (.ics) e avisa a KM BIM.
+// Sem vagas, a confirmação coloca a pessoa na lista de espera; quando uma vaga é liberada
+// (cancelamento, mudança no painel ou aumento de vagas), o primeiro da fila é confirmado e avisado.
 // Pública (chamada pela página /eventos/confirmar): desligue "Verify JWT" ao publicar.
+// A ação "promover" (painel) exige o login de um administrador, verificado aqui dentro.
 //
 // Segredos: RESEND_API_KEY, EMAIL_REMETENTE, EMAIL_RESPOSTA, SITE_URL (os mesmos da função "inscrever")
 //           EMAIL_AVISO  endereço que recebe o aviso de nova inscrição confirmada (ex.: contato@kmbim.com.br)
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -63,44 +66,25 @@ function convite(ev: Record<string, string>, idInscricao: string) {
   return btoa(unescape(encodeURIComponent(linhas.join('\r\n'))));
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
-  if (req.method !== 'POST') return json({ erro: 'Método não permitido' }, 405);
+const CAMPOS_EVENTO = 'id, slug, titulo, resumo, inicio, fim, local, modalidade, link_acesso, instrucoes_acesso';
+type Evento = Record<string, string>;
+type Inscricao = { id: string; nome: string; email: string; telefone: string; empresa: string; token: string };
+const site = () => Deno.env.get('SITE_URL') ?? 'https://kmbim.com.br';
+const par = (t: string) => `<p style="margin:0 0 12px;font-size:15px;line-height:1.6">${t}</p>`;
+const nota = (t: string) => `<p style="margin:0 0 8px;font-size:13px;color:#56666D">${t}</p>`;
 
-  let d: Record<string, unknown>;
-  try { d = await req.json(); } catch { return json({ resultado: 'invalido' }, 400); }
-  const token = String(d.token ?? '');
-  const acao = d.acao === 'cancelar' ? 'cancelar' : 'confirmar';
-  if (!/^[0-9a-f-]{36}$/i.test(token)) return json({ resultado: 'invalido' }, 400);
-
-  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-  const { data: insc } = await db.from('inscricoes_evento')
-    .select('id, nome, email, telefone, empresa, status, eventos(id, slug, titulo, resumo, inicio, fim, local, modalidade, link_acesso, instrucoes_acesso)')
-    .eq('token', token).maybeSingle();
-  if (!insc) return json({ resultado: 'invalido' }, 404);
-  const ev = insc.eventos as unknown as Record<string, string>;
-  const evento = { titulo: ev.titulo, slug: ev.slug, inicio: ev.inicio, fim: ev.fim, local: ev.local };
-
-  if (acao === 'cancelar') {
-    if (insc.status !== 'cancelada') {
-      await db.from('inscricoes_evento').update({ status: 'cancelada', cancelado_em: new Date().toISOString() }).eq('id', insc.id);
-    }
-    return json({ resultado: 'cancelada', evento });
-  }
-
-  if (new Date(ev.fim).getTime() < Date.now()) return json({ resultado: 'encerrado', evento });
-  const { data: resultado, error } = await db.rpc('confirmar_inscricao', { p_token: token });
-  if (error) { console.error(error); return json({ resultado: 'erro' }, 500); }
-  if (resultado !== 'confirmada') return json({ resultado, evento });
-
-  const site = Deno.env.get('SITE_URL') ?? 'https://kmbim.com.br';
-  const cancelar = `${site}/eventos/confirmar?token=${token}&acao=cancelar`;
+// E-mail com o link de acesso e o convite de agenda, e aviso para a KM BIM.
+async function enviarConfirmacao(db: SupabaseClient, insc: Inscricao, ev: Evento, daEspera = false) {
+  const cancelar = `${site()}/eventos/confirmar?token=${insc.token}&acao=cancelar`;
   const acesso = ev.link_acesso
     ? `<p style="margin:0 0 20px"><a href="${esc(ev.link_acesso)}" style="display:inline-block;background:#0B5563;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:6px">Acessar o evento</a></p>
        <p style="margin:0 0 16px;font-size:13px;color:#56666D;word-break:break-all">Link: ${esc(ev.link_acesso)}</p>`
-    : `<p style="margin:0 0 16px;font-size:15px;line-height:1.6">O link de acesso será enviado antes do evento.</p>`;
+    : par('O link de acesso será enviado antes do evento.');
+  const abertura = daEspera
+    ? `Olá, ${esc(insc.nome.split(' ')[0])}! Boa notícia: uma vaga foi liberada e sua inscrição saiu da lista de espera. <strong>Sua vaga está garantida.</strong>`
+    : `Olá, ${esc(insc.nome.split(' ')[0])}! Sua vaga está garantida.`;
   const corpo = `
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.6">Olá, ${esc(insc.nome.split(' ')[0])}! Sua vaga está garantida.</p>
+    ${par(abertura)}
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;font-size:15px;line-height:1.6">
       <tr><td style="padding:0 12px 4px 0;color:#56666D">Evento</td><td><strong>${esc(ev.titulo)}</strong></td></tr>
       <tr><td style="padding:0 12px 4px 0;color:#56666D">Quando</td><td>${esc(dataHora(ev.inicio))} às ${esc(hora(ev.fim))} (horário de Brasília)</td></tr>
@@ -108,20 +92,112 @@ Deno.serve(async (req) => {
     </table>
     ${acesso}
     ${ev.instrucoes_acesso ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;white-space:pre-line">${esc(ev.instrucoes_acesso)}</p>` : ''}
-    <p style="margin:0 0 8px;font-size:13px;color:#56666D">O convite em anexo adiciona o evento à sua agenda.</p>
-    <p style="margin:0 0 8px;font-size:13px;color:#56666D">Não poderá participar? <a href="${cancelar}" style="color:#0B5563">Cancele sua inscrição</a> e libere a vaga.</p>`;
+    ${nota('O convite em anexo adiciona o evento à sua agenda.')}
+    ${nota(`Não poderá participar? <a href="${cancelar}" style="color:#0B5563">Cancele sua inscrição</a> e libere a vaga${daEspera ? ' para o próximo da lista' : ''}.`)}`;
   try {
-    await enviarEmail(insc.email, `Inscrição confirmada: ${ev.titulo}`, emailHtml('Inscrição confirmada', corpo),
+    await enviarEmail(insc.email, `${daEspera ? 'Vaga liberada! ' : ''}Inscrição confirmada: ${ev.titulo}`,
+      emailHtml(daEspera ? 'Vaga liberada: inscrição confirmada' : 'Inscrição confirmada', corpo),
       [{ filename: 'evento-km-bim.ics', content: convite(ev, insc.id) }]);
   } catch (e) { console.error(e); }
 
   const aviso = Deno.env.get('EMAIL_AVISO');
   if (aviso) {
     const { count } = await db.from('inscricoes_evento').select('id', { count: 'exact', head: true }).eq('evento_id', ev.id).eq('status', 'confirmada');
-    const corpoAviso = `<p style="margin:0 0 12px;font-size:15px;line-height:1.6"><strong>${esc(insc.nome)}</strong> confirmou presença em <strong>${esc(ev.titulo)}</strong>.</p>
+    const corpoAviso = `${par(`<strong>${esc(insc.nome)}</strong> ${daEspera ? 'saiu da lista de espera e foi confirmado(a) em' : 'confirmou presença em'} <strong>${esc(ev.titulo)}</strong>.`)}
       <p style="margin:0 0 12px;font-size:14px;line-height:1.6">${esc(insc.email)} · ${esc(insc.telefone)}${insc.empresa ? ` · ${esc(insc.empresa)}` : ''}</p>
-      <p style="margin:0 0 12px;font-size:14px;color:#56666D">Confirmados até agora: ${count ?? '—'}</p>`;
-    try { await enviarEmail(aviso, `Nova inscrição: ${ev.titulo}`, emailHtml('Nova inscrição confirmada', corpoAviso)); } catch (e) { console.error(e); }
+      ${nota(`Confirmados até agora: ${count ?? '—'}`)}`;
+    try {
+      await enviarEmail(aviso, `${daEspera ? 'Lista de espera → confirmada' : 'Nova inscrição'}: ${ev.titulo}`,
+        emailHtml(daEspera ? 'Inscrição promovida da lista de espera' : 'Nova inscrição confirmada', corpoAviso));
+    } catch (e) { console.error(e); }
   }
-  return json({ resultado: 'confirmada', evento });
+}
+
+// E-mail de quem entrou na lista de espera.
+async function enviarListaEspera(insc: Inscricao, ev: Evento, posicao: number) {
+  const cancelar = `${site()}/eventos/confirmar?token=${insc.token}&acao=cancelar`;
+  const corpo = `
+    ${par(`Olá, ${esc(insc.nome.split(' ')[0])}! As vagas de <strong>${esc(ev.titulo)}</strong> (${esc(dataHora(ev.inicio))}) estão preenchidas, e você está na <strong>lista de espera</strong>.`)}
+    <p style="margin:4px 0 20px;font-size:15px">Sua posição: <strong style="font-size:22px;color:#0B5563">${posicao}º</strong></p>
+    ${par('Se alguém desistir, a vaga passa automaticamente para o próximo da lista. Quando chegar a sua vez, você recebe um e-mail com a confirmação, o link de acesso e o convite para a agenda.')}
+    ${nota(`Não tem mais interesse? <a href="${cancelar}" style="color:#0B5563">Saia da lista de espera</a>.`)}`;
+  try {
+    await enviarEmail(insc.email, `Você está na lista de espera (${posicao}º): ${ev.titulo}`, emailHtml('Você está na lista de espera', corpo));
+  } catch (e) { console.error(e); }
+}
+
+// Preenche as vagas livres com a lista de espera e avisa cada pessoa confirmada. Retorna os ids promovidos.
+async function promover(db: SupabaseClient, ev: Evento): Promise<string[]> {
+  const { data: ids, error } = await db.rpc('promover_lista_espera', { p_evento: ev.id });
+  if (error) { console.error(error); return []; }
+  const lista = (ids ?? []) as string[];
+  if (!lista.length) return [];
+  const { data: pessoas } = await db.from('inscricoes_evento').select('id, nome, email, telefone, empresa, token').in('id', lista);
+  for (const p of (pessoas ?? []) as Inscricao[]) await enviarConfirmacao(db, p, ev, true);
+  return lista;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json({ erro: 'Método não permitido' }, 405);
+
+  let d: Record<string, unknown>;
+  try { d = await req.json(); } catch { return json({ resultado: 'invalido' }, 400); }
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+  // Painel: preenche vagas livres com a lista de espera (após cancelar alguém ou aumentar as vagas).
+  if (d.acao === 'promover') {
+    const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const { data: usuario } = await db.auth.getUser(jwt);
+    const { data: admin } = usuario?.user
+      ? await db.from('administradores').select('user_id').eq('user_id', usuario.user.id).maybeSingle()
+      : { data: null };
+    if (!admin) return json({ erro: 'Acesso restrito ao administrador.' }, 403);
+    const { data: ev } = await db.from('eventos').select(CAMPOS_EVENTO).eq('id', String(d.evento_id ?? '')).maybeSingle();
+    if (!ev) return json({ erro: 'Evento não encontrado.' }, 404);
+    const promovidos = await promover(db, ev as Evento);
+    return json({ promovidos: promovidos.length });
+  }
+
+  const token = String(d.token ?? '');
+  const acao = d.acao === 'cancelar' ? 'cancelar' : 'confirmar';
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return json({ resultado: 'invalido' }, 400);
+
+  const { data: insc } = await db.from('inscricoes_evento')
+    .select(`id, nome, email, telefone, empresa, status, token, eventos(${CAMPOS_EVENTO})`)
+    .eq('token', token).maybeSingle();
+  if (!insc) return json({ resultado: 'invalido' }, 404);
+  const ev = insc.eventos as unknown as Evento;
+  const evento = { titulo: ev.titulo, slug: ev.slug, inicio: ev.inicio, fim: ev.fim, local: ev.local };
+  const pessoa = insc as unknown as Inscricao;
+
+  if (acao === 'cancelar') {
+    if (insc.status === 'cancelada') return json({ resultado: 'cancelada', evento });
+    const estava = insc.status;
+    await db.from('inscricoes_evento').update({ status: 'cancelada', cancelado_em: new Date().toISOString() }).eq('id', insc.id);
+    if (estava === 'confirmada') await promover(db, ev); // a vaga liberada vai para o primeiro da lista
+    return json({ resultado: estava === 'lista_espera' ? 'saiu_espera' : 'cancelada', evento });
+  }
+
+  if (new Date(ev.fim).getTime() < Date.now()) return json({ resultado: 'encerrado', evento });
+  const { data: resultado, error } = await db.rpc('confirmar_inscricao', { p_token: token });
+  if (error) { console.error(error); return json({ resultado: 'erro' }, 500); }
+
+  if (resultado === 'confirmada') {
+    await enviarConfirmacao(db, pessoa, ev);
+    return json({ resultado, evento });
+  }
+  if (resultado === 'lista_espera') {
+    // Pode haver vaga livre (ex.: vagas aumentadas no painel): a fila anda antes de calcular a posição.
+    const promovidos = await promover(db, ev);
+    if (promovidos.includes(insc.id)) return json({ resultado: 'confirmada', evento });
+    const { data: posicao } = await db.rpc('posicao_espera', { p_inscricao: insc.id });
+    await enviarListaEspera(pessoa, ev, posicao ?? 1);
+    return json({ resultado, evento, posicao });
+  }
+  if (resultado === 'ja_lista_espera') {
+    const { data: posicao } = await db.rpc('posicao_espera', { p_inscricao: insc.id });
+    return json({ resultado, evento, posicao });
+  }
+  return json({ resultado, evento });
 });

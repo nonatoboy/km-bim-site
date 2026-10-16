@@ -209,8 +209,15 @@ function paraLocal(iso?: string | null) {
 }
 
 // ---------------------------------------------------------------- inscrições em eventos
-const STATUS_INSC: [string, string][] = [['pendente', 'Pendente'], ['confirmada', 'Confirmada'], ['cancelada', 'Cancelada'], ['aguardando_pagamento', 'Aguardando pagamento']];
+const STATUS_INSC: [string, string][] = [['pendente', 'Pendente'], ['confirmada', 'Confirmada'], ['lista_espera', 'Lista de espera'], ['cancelada', 'Cancelada'], ['aguardando_pagamento', 'Aguardando pagamento']];
 let eventoSelecionado = '';
+
+// Preenche vagas livres com a lista de espera (Edge Function "inscricao", que também envia os e-mails).
+async function promoverEspera(eventoId: string) {
+  const { data, error } = await db.functions.invoke('inscricao', { body: { acao: 'promover', evento_id: eventoId } });
+  if (error) { aviso('Não foi possível atualizar a lista de espera. Verifique a função "inscricao" no Supabase.', 'erro'); return; }
+  if (data?.promovidos) aviso(`${data.promovidos} pessoa(s) saíram da lista de espera e receberam o e-mail de confirmação.`);
+}
 
 async function listarInscricoes() {
   const area = $('#area');
@@ -220,6 +227,10 @@ async function listarInscricoes() {
   if (!eventos.some((e) => e.id === eventoSelecionado)) eventoSelecionado = eventos[0].id;
   const ev = eventos.find((e) => e.id === eventoSelecionado)!;
   const { data: insc = [] } = await db.from('inscricoes_evento').select('*').eq('evento_id', ev.id).order('criado_em');
+  // Posição na lista de espera: ordem de entrada na fila
+  const fila = insc!.filter((i) => i.status === 'lista_espera')
+    .sort((a, b) => (a.espera_desde ?? '').localeCompare(b.espera_desde ?? '') || a.id.localeCompare(b.id));
+  const posicao = (i: any) => (i.status === 'lista_espera' ? fila.indexOf(i) + 1 : null);
   const conta = (st: string) => insc!.filter((i) => i.status === st).length;
   const presentes = insc!.filter((i) => i.presente).length;
   area.innerHTML = `
@@ -227,13 +238,13 @@ async function listarInscricoes() {
       <h2>Inscrições</h2>
       <label class="campo"><select id="sel-evento">${eventos.map((e) => `<option value="${e.id}" ${e.id === ev.id ? 'selected' : ''}>${esc(dataBr(e.inicio))} · ${esc(e.titulo)}</option>`).join('')}</select></label>
     </header>
-    <p class="resumo-insc"><strong>${conta('confirmada')}</strong> confirmada(s)${ev.vagas ? ` de ${ev.vagas} vagas` : ''} · <strong>${conta('pendente')}</strong> pendente(s) · <strong>${conta('cancelada')}</strong> cancelada(s) · <strong>${presentes}</strong> presente(s)
+    <p class="resumo-insc"><strong>${conta('confirmada')}</strong> confirmada(s)${ev.vagas ? ` de ${ev.vagas} vagas` : ''} · <strong>${conta('lista_espera')}</strong> na lista de espera · <strong>${conta('pendente')}</strong> pendente(s) · <strong>${conta('cancelada')}</strong> cancelada(s) · <strong>${presentes}</strong> presente(s)
       <button type="button" class="botao botao--contorno" id="exportar">Exportar para Excel (CSV)</button></p>
     ${insc!.length ? `<div class="tabela-insc"><table>
       <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Empresa</th><th>Inscrição</th><th>Status</th><th>Presente</th></tr></thead>
       <tbody>${insc!.map((i) => `<tr data-id="${i.id}">
         <td>${esc(i.nome)}</td><td>${esc(i.email)}</td><td>${esc(i.telefone)}</td><td>${esc(i.empresa)}</td><td>${esc(dataBr(i.criado_em))}</td>
-        <td><select data-campo="status">${STATUS_INSC.map(([v, r]) => `<option value="${v}" ${v === i.status ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
+        <td><select data-campo="status">${STATUS_INSC.map(([v, r]) => `<option value="${v}" ${v === i.status ? 'selected' : ''}>${r}${v === 'lista_espera' && posicao(i) ? ` (${posicao(i)}º)` : ''}</option>`).join('')}</select></td>
         <td><input type="checkbox" data-campo="presente" ${i.presente ? 'checked' : ''} aria-label="Presente"></td></tr>`).join('')}
       </tbody></table></div>` : '<div class="vazio"><p>Nenhuma inscrição neste evento ainda.</p></div>'}`;
   $('#sel-evento').addEventListener('change', (e) => { eventoSelecionado = (e.target as HTMLSelectElement).value; listarInscricoes(); });
@@ -241,13 +252,21 @@ async function listarInscricoes() {
     const id = el.closest('tr')!.dataset.id!;
     const campo = el.dataset.campo!;
     const valor = campo === 'presente' ? (el as HTMLInputElement).checked : (el as HTMLSelectElement).value;
-    const extra: Record<string, any> = campo === 'status' && valor === 'confirmada' ? { confirmado_em: new Date().toISOString() } : campo === 'status' && valor === 'cancelada' ? { cancelado_em: new Date().toISOString() } : {};
+    const agora = new Date().toISOString();
+    const extra: Record<string, any> = campo !== 'status' ? {}
+      : valor === 'confirmada' ? { confirmado_em: agora }
+      : valor === 'cancelada' ? { cancelado_em: agora }
+      : valor === 'lista_espera' ? { espera_desde: agora } // entra no fim da fila
+      : {};
     const { error: e } = await db.from('inscricoes_evento').update({ [campo]: valor, ...extra }).eq('id', id);
-    if (e) aviso(e.message, 'erro'); else { aviso('Inscrição atualizada.'); listarInscricoes(); }
+    if (e) { aviso(e.message, 'erro'); return; }
+    aviso('Inscrição atualizada.');
+    if (campo === 'status') await promoverEspera(ev.id); // vaga liberada vai para o primeiro da fila
+    listarInscricoes();
   }));
   area.querySelector('#exportar')?.addEventListener('click', () => {
-    const cab = ['Nome', 'E-mail', 'Telefone', 'Empresa', 'Status', 'Presente', 'Inscrição', 'Confirmação'];
-    const linhas = insc!.map((i) => [i.nome, i.email, i.telefone, i.empresa, STATUS_INSC.find(([v]) => v === i.status)?.[1] ?? i.status, i.presente ? 'Sim' : 'Não', dataBr(i.criado_em), dataBr(i.confirmado_em)]);
+    const cab = ['Nome', 'E-mail', 'Telefone', 'Empresa', 'Status', 'Posição na espera', 'Presente', 'Inscrição', 'Confirmação'];
+    const linhas = insc!.map((i) => [i.nome, i.email, i.telefone, i.empresa, STATUS_INSC.find(([v]) => v === i.status)?.[1] ?? i.status, posicao(i) ?? '', i.presente ? 'Sim' : 'Não', dataBr(i.criado_em), dataBr(i.confirmado_em)]);
     // Ponto e vírgula e BOM: abre direto no Excel em português com acentos corretos
     const csv = '\uFEFF' + [cab, ...linhas].map((l) => l.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
     const a = document.createElement('a');
@@ -424,6 +443,8 @@ function editar(t: Tabela, linha: Record<string, any> | null) {
     const { error } = await q;
     if (error) { aviso(traduzirErro(error.message), 'erro'); return; }
     aviso('Salvo. Use "Publicar alterações" para atualizar o site.');
+    // Vagas aumentadas: a lista de espera anda e os promovidos recebem o e-mail de confirmação.
+    if (t.nome === 'eventos' && !novo && dados.vagas !== linha!.vagas) await promoverEspera(linha!.id);
     fechar();
     abrirAba(abaAtual);
   });

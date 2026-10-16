@@ -3,7 +3,7 @@
 //
 // Segredos (Supabase > Edge Functions > Secrets):
 //   RESEND_API_KEY   chave da API do Resend
-//   EMAIL_REMETENTE  KM BIM Eventos <eventos@kmbim.com.br>
+//   EMAIL_REMETENTE  KM BIM Eventos <inscricoes@eventos.kmbim.com.br>
 //   EMAIL_RESPOSTA   contato@kmbim.com.br
 //   SITE_URL         https://kmbim.com.br
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já vêm prontas no ambiente.
@@ -73,8 +73,13 @@ Deno.serve(async (req) => {
   if (!ev || !ev.ativo) return json({ erro: 'Evento não encontrado.' }, 404);
   const limite = new Date(ev.inscricoes_ate ?? ev.inicio);
   if (!ev.inscricoes_abertas || Date.now() > limite.getTime()) return json({ erro: 'As inscrições para este evento estão encerradas.', motivo: 'encerrado' }, 409);
-  const { data: restantes } = await db.rpc('vagas_restantes', { p_evento: ev.id });
-  if (restantes === 0) return json({ erro: 'As vagas deste evento estão esgotadas.', motivo: 'lotado' }, 409);
+  // Vagas esgotadas (ou fila já formada): a inscrição continua, mas para a lista de espera.
+  const [{ data: restantes }, { data: fila }] = await Promise.all([
+    db.rpc('vagas_restantes', { p_evento: ev.id }),
+    db.rpc('lista_espera_total', { p_evento: ev.id }),
+  ]);
+  const espera = restantes === 0 || (restantes !== null && (fila ?? 0) > 0);
+  const posicaoPrevista = espera ? (fila ?? 0) + 1 : null;
 
   // Mesmo e-mail no mesmo evento: reaproveita a inscrição existente.
   const { data: existente } = await db.from('inscricoes_evento')
@@ -82,9 +87,12 @@ Deno.serve(async (req) => {
   let token: string;
   if (existente?.status === 'confirmada') {
     return json({ ok: true, situacao: 'ja_confirmada' });
+  } else if (existente?.status === 'lista_espera') {
+    const { data: posicao } = await db.rpc('posicao_espera', { p_inscricao: existente.id });
+    return json({ ok: true, situacao: 'ja_lista_espera', posicao });
   } else if (existente) {
     const { data, error } = await db.from('inscricoes_evento')
-      .update({ nome, telefone, empresa, status: 'pendente', cancelado_em: null, token: crypto.randomUUID() })
+      .update({ nome, telefone, empresa, status: 'pendente', cancelado_em: null, espera_desde: null, token: crypto.randomUUID() })
       .eq('id', existente.id).select('token').single();
     if (error) return json({ erro: 'Não foi possível registrar a inscrição.' }, 500);
     token = data.token;
@@ -98,18 +106,23 @@ Deno.serve(async (req) => {
 
   const site = Deno.env.get('SITE_URL') ?? 'https://kmbim.com.br';
   const link = `${site}/eventos/confirmar?token=${token}`;
+  const p = (t: string) => `<p style="margin:0 0 12px;font-size:15px;line-height:1.6">${t}</p>`;
   const corpo = `
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.6">Olá, ${esc(nome.split(' ')[0])}!</p>
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.6">Recebemos sua inscrição em <strong>${esc(ev.titulo)}</strong>, ${esc(dataHora(ev.inicio))}.</p>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6">Para garantir sua vaga, confirme a inscrição:</p>
-    <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#F2A33A;color:#1C2A31;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:6px">Confirmar inscrição</a></p>
-    <p style="margin:0 0 8px;font-size:13px;color:#56666D">Depois de confirmar, você recebe o link de acesso e o convite para a agenda.</p>
+    ${p(`Olá, ${esc(nome.split(' ')[0])}!`)}
+    ${p(`Recebemos sua inscrição em <strong>${esc(ev.titulo)}</strong>, ${esc(dataHora(ev.inicio))}.`)}
+    ${espera
+      ? `${p(`As vagas deste evento estão preenchidas. Ao confirmar, você entra na <strong>lista de espera</strong>, na posição <strong>${posicaoPrevista}</strong> (prevista).`)}
+         ${p('Se alguém desistir, a vaga passa para o próximo da lista e avisamos você por e-mail, já com o link de acesso.')}`
+      : p('Para garantir sua vaga, confirme a inscrição:')}
+    <p style="margin:8px 0 24px"><a href="${link}" style="display:inline-block;background:#F2A33A;color:#1C2A31;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:6px">${espera ? 'Confirmar e entrar na lista de espera' : 'Confirmar inscrição'}</a></p>
+    ${espera ? '' : '<p style="margin:0 0 8px;font-size:13px;color:#56666D">Depois de confirmar, você recebe o link de acesso e o convite para a agenda.</p>'}
     <p style="margin:0 0 8px;font-size:13px;color:#56666D">Se não foi você, ignore esta mensagem.</p>`;
+  const assunto = espera ? `Confirme sua entrada na lista de espera: ${ev.titulo}` : `Confirme sua inscrição: ${ev.titulo}`;
   try {
-    await enviarEmail(email, `Confirme sua inscrição: ${ev.titulo}`, emailHtml('Confirme sua inscrição', corpo));
+    await enviarEmail(email, assunto, emailHtml(espera ? 'Confirme sua entrada na lista de espera' : 'Confirme sua inscrição', corpo));
   } catch (e) {
     console.error(e);
     return json({ erro: 'Inscrição registrada, mas não conseguimos enviar o e-mail. Tente novamente em alguns minutos.' }, 502);
   }
-  return json({ ok: true, situacao: 'pendente' });
+  return json({ ok: true, situacao: 'pendente', lista_espera: espera, posicao: posicaoPrevista });
 });

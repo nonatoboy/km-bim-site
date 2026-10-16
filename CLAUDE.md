@@ -14,6 +14,7 @@ Site da KM Consultoria BIM Ltda (kmbim.com.br). Conteúdo e interface em portugu
 - Astro com `output: 'static'`. A hospedagem (Hostinger Single Web Hosting) só serve arquivos: nada de SSR, API routes ou middleware.
 - Conteúdo lido do Supabase **no build** (`src/lib/conteudo.ts`). Sem variáveis de ambiente, usa `src/data/conteudo-inicial.json`.
 - No navegador, o Supabase é usado pelo formulário de orçamento (insert), pelas vagas dos eventos (rpc `vagas_restantes`), pelas Edge Functions `inscrever`/`inscricao` (inscrição e confirmação de eventos, e-mails via Resend) e pelo painel `/admin` (login + CRUD).
+- Lista de espera: status `lista_espera` (fila por `espera_desde`). `confirmar_inscricao` põe na fila quando não há vaga ou já há fila; `promover_lista_espera` (service role) preenche vagas livres e a Edge Function `inscricao` envia os e-mails (inclusive pela ação `promover`, chamada pelo painel com login de admin).
 - `eventos.link_acesso` e `instrucoes_acesso` são privados: o papel `anon` só tem SELECT nas colunas públicas. Ao adicionar colunas públicas em `eventos`, inclua-as no GRANT.
 - Segurança nas políticas RLS (`supabase/migrations/`). Mudanças de banco entram como **nova** migration, nunca editando uma já aplicada; o README explica que o dono aplica via SQL Editor.
 - Deploy: `.github/workflows/publicar.yml` (push na main, `repository_dispatch: publicar` ou manual) → FTP.

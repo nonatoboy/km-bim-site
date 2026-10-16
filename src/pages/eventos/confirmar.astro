@@ -19,6 +19,21 @@ import Base from '../../layouts/Base.astro';
         <h1>Esta inscrição já estava confirmada</h1>
         <p>O link de acesso de <strong data-titulo></strong> foi enviado no e-mail de confirmação. Confira também a caixa de spam.</p>
       </div>
+      <div class="estado" data-estado="lista_espera" hidden>
+        <span class="rotulo">Lista de espera</span>
+        <h1>Você está na lista de espera, na posição <span data-posicao></span></h1>
+        <p>As vagas de <strong data-titulo></strong> estão preenchidas. Se alguém desistir, a vaga passa para o próximo da lista e você recebe um e-mail com a confirmação e o link de acesso.</p>
+      </div>
+      <div class="estado" data-estado="ja_lista_espera" hidden>
+        <span class="rotulo">Lista de espera</span>
+        <h1>Você já está na lista de espera, na posição <span data-posicao></span></h1>
+        <p>Se uma vaga de <strong data-titulo></strong> for liberada, avisamos por e-mail.</p>
+      </div>
+      <div class="estado" data-estado="saiu_espera" hidden>
+        <span class="rotulo">Lista de espera</span>
+        <h1>Você saiu da lista de espera</h1>
+        <p>Sua inscrição em <strong data-titulo></strong> foi cancelada. Se mudar de ideia, inscreva-se novamente na <a data-link-evento href="/eventos">página do evento</a>.</p>
+      </div>
       <div class="estado" data-estado="cancelada" hidden>
         <span class="rotulo">Inscrição cancelada</span>
         <h1>Inscrição cancelada</h1>
@@ -57,8 +72,9 @@ import Base from '../../layouts/Base.astro';
   const token = params.get('token') ?? '';
   const acao = params.get('acao') === 'cancelar' ? 'cancelar' : 'confirmar';
 
-  function exibir(estado: string, evento?: { titulo: string; slug: string; inicio: string }) {
+  function exibir(estado: string, evento?: { titulo: string; slug: string; inicio: string }, posicao?: number) {
     document.querySelectorAll<HTMLElement>('[data-estado]').forEach((el) => { el.hidden = el.dataset.estado !== estado; });
+    if (posicao) document.querySelectorAll('[data-posicao]').forEach((el) => { el.textContent = `${posicao}`; });
     if (!evento) return;
     document.querySelectorAll('[data-titulo]').forEach((el) => { el.textContent = evento.titulo; });
     document.querySelectorAll('[data-quando]').forEach((el) => { el.textContent = `${formatarData(evento.inicio)}, às ${formatarHora(evento.inicio)}`; });
@@ -69,9 +85,9 @@ import Base from '../../layouts/Base.astro';
     if (!token || !supabaseConfigurado) return exibir('invalido');
     const { data, error } = await supabase().functions.invoke('inscricao', { body: { token, acao } });
     if (error) {
-      try { const corpo = await (error as any).context?.json(); return exibir(corpo?.resultado ?? 'erro', corpo?.evento); } catch { return exibir('erro'); }
+      try { const corpo = await (error as any).context?.json(); return exibir(corpo?.resultado ?? 'erro', corpo?.evento, corpo?.posicao); } catch { return exibir('erro'); }
     }
-    exibir(data?.resultado ?? 'erro', data?.evento);
+    exibir(data?.resultado ?? 'erro', data?.evento, data?.posicao);
   })();
 </script>
 
