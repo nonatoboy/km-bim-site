@@ -12,7 +12,7 @@ const categoriasOpcoes: [string, string][] = [];
 const TABELAS: Tabela[] = [
   {
     nome: 'eventos', rotulo: 'Eventos', chave: 'id', titulo: 'titulo', subtitulo: 'inicio',
-    padrao: { tipo: 'webinar', modalidade: 'online', palestrante: 'Marcelo Nonato Santos', local: 'Microsoft Teams', inscricoes_abertas: true, ativo: true, ordem: 0 },
+    padrao: { tipo: 'webinar', modalidade: 'online', palestrante: 'Marcelo Nonato Santos', local: 'Microsoft Teams', inscricoes_abertas: true, ativo: true, listado: true, ordem: 0 },
     campos: [
       { nome: 'titulo', rotulo: 'Título', tipo: 'texto', obrigatorio: true },
       { nome: 'slug', rotulo: 'Endereço (slug)', tipo: 'texto', obrigatorio: true, ajuda: 'Letras minúsculas, números e hífens. Vira kmbim.com.br/eventos/slug, o link de divulgação.' },
@@ -34,6 +34,7 @@ const TABELAS: Tabela[] = [
       { nome: 'imagem', rotulo: 'Arte de divulgação', tipo: 'imagem' },
       { nome: 'solucao_relacionada', rotulo: 'Solução relacionada (slug)', tipo: 'texto', ajuda: 'Opcional. Ex.: implantacao-bim-iso-19650' },
       { nome: 'ativo', rotulo: 'Visível no site', tipo: 'booleano' },
+      { nome: 'listado', rotulo: 'Listado no site', tipo: 'booleano', ajuda: 'Desmarque para um evento exclusivo: a página e as inscrições funcionam, mas o evento não aparece na lista de eventos nem na página inicial. Só chega quem recebe o link.' },
     ],
   },
   {

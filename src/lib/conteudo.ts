@@ -6,6 +6,8 @@ import type { Conteudo } from './tipos';
 
 let cache: Promise<Conteudo> | null = null;
 
+const colunasEvento = 'id, slug, titulo, tipo, modalidade, resumo, descricao, publico_alvo, palestrante, local, inicio, fim, vagas, inscricoes_abertas, inscricoes_ate, preco, imagem, solucao_relacionada, ordem';
+
 export function carregarConteudo(): Promise<Conteudo> {
   cache ??= supabaseConfigurado ? doBanco() : Promise.resolve({ eventos: [], ...inicial } as Conteudo);
   return cache;
@@ -35,7 +37,10 @@ async function doBanco(): Promise<Conteudo> {
     lista<Conteudo['depoimentos'][number]>('depoimentos', 'autor, cargo, empresa, texto, foto, ordem'),
     // Só colunas públicas (o link de acesso não é legível pelo site)
     // Tolerante: enquanto a migration de eventos não for aplicada, o site publica sem a seção.
-    lista<Conteudo['eventos'][number]>('eventos', 'id, slug, titulo, tipo, modalidade, resumo, descricao, publico_alvo, palestrante, local, inicio, fim, vagas, inscricoes_abertas, inscricoes_ate, preco, imagem, solucao_relacionada, ordem', (q) => q.order('inicio'))
+    // Sem a migration de eventos não listados, lê sem a coluna e trata todos como listados.
+    lista<Conteudo['eventos'][number]>('eventos', `${colunasEvento}, listado`, (q) => q.order('inicio'))
+      .catch(() => lista<Conteudo['eventos'][number]>('eventos', colunasEvento, (q) => q.order('inicio'))
+        .then((eventos) => eventos.map((e) => ({ ...e, listado: true }))))
       .catch((e) => { console.warn(`[eventos] ${e.message}`); return []; }),
   ]);
 

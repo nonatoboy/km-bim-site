@@ -17,6 +17,7 @@ export interface Evento {
   resumo: string; descricao: string; publico_alvo: string; palestrante: string; local: string;
   inicio: string; fim: string; vagas: number | null; inscricoes_abertas: boolean; inscricoes_ate: string | null;
   preco: number | null; imagem: string; solucao_relacionada: string; ordem: number;
+  listado: boolean; // false = só quem tem o link chega à página
 }
 
 export interface Conteudo {

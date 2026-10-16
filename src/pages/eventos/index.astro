@@ -3,7 +3,8 @@ import Base from '../../layouts/Base.astro';
 import EventoCard from '../../components/EventoCard.astro';
 import { carregarConteudo } from '../../lib/conteudo';
 
-const { eventos } = await carregarConteudo();
+const { eventos: todos } = await carregarConteudo();
+const eventos = todos.filter((e) => e.listado); // não listados só abrem pelo link
 // No build: próximos em ordem crescente, anteriores do mais recente ao mais antigo.
 // No navegador, um script reposiciona o que já passou (o site é estático).
 const agora = Date.now();

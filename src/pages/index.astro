@@ -7,7 +7,7 @@ import { carregarConteudo } from '../lib/conteudo';
 
 const { configuracoes: cfg, categorias, solucoes, parceiros, depoimentos, eventos } = await carregarConteudo();
 // Até 3 próximos eventos; o script da página esconde os que já passaram desde a publicação.
-const proximosEventos = eventos.filter((e) => new Date(e.fim).getTime() >= Date.now()).slice(0, 3);
+const proximosEventos = eventos.filter((e) => e.listado && new Date(e.fim).getTime() >= Date.now()).slice(0, 3);
 const nomeCategoria = Object.fromEntries(categorias.map((c) => [c.slug, c.nome]));
 const destaques = solucoes.filter((s) => s.destaque).slice(0, 6);
 const contagem = (slug: string) => solucoes.filter((s) => s.categoria === slug).length;

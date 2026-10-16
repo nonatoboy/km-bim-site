@@ -17,7 +17,7 @@ Pergunte de uma vez só (com sugestões, para ele só confirmar), e siga com pad
 4. **Modalidade e local**: online (padrão: Microsoft Teams), presencial (endereço) ou híbrido.
 5. **Vagas**: número ou sem limite. Com limite, a lista de espera funciona sozinha.
 6. **Preço**: padrão gratuito. Pagamento online ainda não existe; se for pago, avise que a cobrança é combinada por fora.
-7. **Público**: quem deve vir (cargos, porte da empresa, nível de BIM).
+7. **Público**: quem deve vir (cargos, porte da empresa, nível de BIM). Se for exclusivo de um grupo, o evento fica **não listado** e a divulgação vai só para o grupo (sem post público no LinkedIn).
 8. **Quem conduz**: padrão "Marcelo Nonato Santos"; convidados, se houver.
 9. **Solução relacionada** (opcional): escolha entre os slugs de `solucoes` em `src/data/conteudo-inicial.json` (o painel pode ter soluções mais novas; confirme com ele).
 10. **Prazo de inscrição** (opcional): padrão até o início do evento.
@@ -71,7 +71,7 @@ Salve em `brand/eventos/{slug}/divulgacao.md` e mostre no chat:
 
 Entregue uma tabela na ordem exata dos campos do painel (`kmbim.com.br/admin` → **Eventos → Adicionar**), com o valor de cada um pronto para copiar:
 
-Título · Endereço (slug) · Tipo · Modalidade · Início (dd/mm/aaaa hh:mm) · Término · Local · Resumo · Descrição completa · Para quem é · Quem conduz · Vagas · Inscrições até · Inscrições abertas (marcado) · Preço (R$) · Link de acesso (privado: *cole a sala do Teams*) · Instruções para os confirmados · Arte de divulgação (*envie arte-site.png*) · Solução relacionada (slug) · Visível no site (marcado).
+Título · Endereço (slug) · Tipo · Modalidade · Início (dd/mm/aaaa hh:mm) · Término · Local · Resumo · Descrição completa · Para quem é · Quem conduz · Vagas · Inscrições até · Inscrições abertas (marcado) · Preço (R$) · Link de acesso (privado: *cole a sala do Teams*) · Instruções para os confirmados · Arte de divulgação (*envie arte-site.png*) · Solução relacionada (slug) · Visível no site (marcado) · Listado no site (marcado; **desmarque** para evento exclusivo de um grupo, que fica acessível só pelo link e não aparece na lista de eventos).
 
 Depois oriente: **Salvar → Publicar alterações → aguardar ~2 min → abrir `kmbim.com.br/eventos/{slug}`** e conferir a página. Sugira que ele faça uma inscrição de teste com `seuemail+teste@gmail.com` e depois a cancele pelo link do e-mail.
 

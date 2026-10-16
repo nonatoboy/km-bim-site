@@ -15,7 +15,7 @@ const { configuracoes: cfg, solucoes } = await carregarConteudo();
 const solucao = solucoes.find((s) => s.slug === e.solucao_relacionada);
 const limite = e.inscricoes_ate ?? e.inicio;
 ---
-<Base titulo={e.titulo} descricao={e.resumo}>
+<Base titulo={e.titulo} descricao={e.resumo} semIndexar={!e.listado}>
   <article class="secao">
     <div class="container detalhe">
       <div class="detalhe__principal">
