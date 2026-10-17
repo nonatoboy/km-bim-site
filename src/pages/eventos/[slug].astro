@@ -134,6 +134,19 @@ const limite = e.inscricoes_ate ?? e.inicio;
 
   const valor = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
 
+  // Link pessoal de convite (?c=…): registra que a pessoa abriu e preenche o formulário com os dados do convite.
+  const convite = new URLSearchParams(location.search).get('c') ?? '';
+  if (supabaseConfigurado && /^[0-9a-f-]{36}$/i.test(convite) && !form.hidden) {
+    supabase().rpc('abrir_convite', { p_token: convite, p_evento: form.dataset.eventoId }).then(({ data }) => {
+      if (!data) return;
+      const telefone = String(data.telefone ?? '').replace(/^55(?=\d{10,11}$)/, '');
+      ([['nome', data.nome], ['email', data.email], ['telefone', telefone]] as [string, string][]).forEach(([id, v]) => {
+        const el = document.getElementById(id) as HTMLInputElement;
+        if (v && !el.value) el.value = v;
+      });
+    });
+  }
+
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     erro.hidden = true;
@@ -145,7 +158,7 @@ const limite = e.inscricoes_ate ?? e.inicio;
     const { data, error } = await supabase().functions.invoke('inscrever', {
       body: {
         evento: form.dataset.evento, nome: valor('nome'), email: valor('email'), telefone: valor('telefone'),
-        empresa: valor('empresa'), site: valor('site'), consentimento: (document.getElementById('consentimento') as HTMLInputElement).checked,
+        empresa: valor('empresa'), site: valor('site'), convite, consentimento: (document.getElementById('consentimento') as HTMLInputElement).checked,
       },
     });
     botao.disabled = false; botao.textContent = textoBotao;

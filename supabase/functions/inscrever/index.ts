@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
   const email = txt('email', 200).toLowerCase();
   const telefone = txt('telefone', 40);
   const empresa = txt('empresa', 160);
+  const convite = txt('convite', 36); // token do link pessoal de convite, se houver
 
   // Campo isca: preenchido só por robôs. Responde "ok" sem fazer nada.
   if (txt('site', 200)) return json({ ok: true });
@@ -81,6 +82,12 @@ Deno.serve(async (req) => {
   const espera = restantes === 0 || (restantes !== null && (fila ?? 0) > 0);
   const posicaoPrevista = espera ? (fila ?? 0) + 1 : null;
 
+  // Veio pelo link pessoal: liga a inscrição ao convidado (aparece como inscrito na aba Convites do painel).
+  const { data: convidado } = /^[0-9a-f-]{36}$/i.test(convite)
+    ? await db.from('convidados').select('id').eq('token', convite).eq('evento_id', ev.id).maybeSingle()
+    : { data: null };
+  const convidado_id = convidado?.id ?? undefined;
+
   // Mesmo e-mail no mesmo evento: reaproveita a inscrição existente.
   const { data: existente } = await db.from('inscricoes_evento')
     .select('id, status, token').eq('evento_id', ev.id).eq('email', email).maybeSingle(); // e-mails são gravados em minúsculas
@@ -92,13 +99,13 @@ Deno.serve(async (req) => {
     return json({ ok: true, situacao: 'ja_lista_espera', posicao });
   } else if (existente) {
     const { data, error } = await db.from('inscricoes_evento')
-      .update({ nome, telefone, empresa, status: 'pendente', cancelado_em: null, espera_desde: null, token: crypto.randomUUID() })
+      .update({ nome, telefone, empresa, status: 'pendente', cancelado_em: null, espera_desde: null, token: crypto.randomUUID(), convidado_id })
       .eq('id', existente.id).select('token').single();
     if (error) return json({ erro: 'Não foi possível registrar a inscrição.' }, 500);
     token = data.token;
   } else {
     const { data, error } = await db.from('inscricoes_evento')
-      .insert({ evento_id: ev.id, nome, email, telefone, empresa, consentimento: true })
+      .insert({ evento_id: ev.id, nome, email, telefone, empresa, consentimento: true, convidado_id })
       .select('token').single();
     if (error) return json({ erro: 'Não foi possível registrar a inscrição.' }, 500);
     token = data.token;

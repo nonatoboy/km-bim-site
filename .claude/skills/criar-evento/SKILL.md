@@ -67,6 +67,10 @@ Salve em `brand/eventos/{slug}/divulgacao.md` e mostre no chat:
 - **E-mail-convite curto** para a rede de contatos (assunto + corpo de até 120 palavras), para ele enviar pelo Outlook.
 - **Lembrete** para repostar 1 ou 2 dias antes ("últimas vagas" se houver limite).
 
+## Convites individuais (eventos restritos)
+
+Quando o público é uma lista de pessoas (turma, ex-alunos, clientes convidados), além de deixar o evento **não listado**, use a aba **Convites** do painel (ver README, "Convites individuais"): importar a lista colada do Excel, ajustar os textos de e-mail e WhatsApp (marcadores `{nome}`, `{titulo}`, `{data}`, `{local}`, `{resumo}`, `{palestrante}`, `{link}`), mandar o teste para ele, enviar por e-mail (até 80 por dia), enviar o WhatsApp um a um pela lista e, depois de 1 dia ou mais, o lembrete para quem não se inscreveu. Redija os textos do convite já no formato dos marcadores, para ele colar no passo 2 da aba. Nunca peça a lista de contatos no chat: ela vai direto para o painel.
+
 ## Etapa 5 · Ficha para o painel
 
 Entregue uma tabela na ordem exata dos campos do painel (`kmbim.com.br/admin` → **Eventos → Adicionar**), com o valor de cada um pronto para copiar:

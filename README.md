@@ -120,6 +120,32 @@ Cada evento ganha uma página com formulário em `kmbim.com.br/eventos/{slug}`. 
 - **Evento exclusivo (não listado):** desmarque **Listado no site**. A página e as inscrições funcionam normalmente, mas o evento não aparece na lista de eventos nem na página inicial, e a página pede aos buscadores para não indexar. Só chega quem recebe o link. Migration: [`supabase/migrations/20261017000000_eventos_nao_listados.sql`](supabase/migrations/20261017000000_eventos_nao_listados.sql).
 - **Eventos pagos:** o campo *Preço* já existe e aparece no site, mas o pagamento online ainda não está integrado; combine o pagamento por fora por enquanto.
 
+### Convites individuais
+
+Para eventos restritos: cada pessoa recebe um convite com **link pessoal** (`/eventos/{slug}?c=…`), por e-mail (enviado pelo site) ou por WhatsApp (você envia um a um, com a mensagem pronta). O painel, na aba **Convites**, mostra quem recebeu, quem abriu, quais e-mails são inválidos, quem abriu o link e quem se inscreveu.
+
+**Configuração (uma vez)**
+
+1. **Banco:** no SQL Editor, rode [`supabase/migrations/20261018000000_convites.sql`](supabase/migrations/20261018000000_convites.sql).
+2. **Função nova** (Edge Functions → Deploy a new function → Via Editor): nome `convites` → [`supabase/functions/convites/index.ts`](supabase/functions/convites/index.ts). Em **Details/Settings**, **desligue "Verify JWT"** (o retorno do Resend não tem login; o painel é verificado dentro da função).
+3. **Atualize a função `inscrever`** com o conteúdo atual de [`supabase/functions/inscrever/index.ts`](supabase/functions/inscrever/index.ts) (abra a função → Code → cole → Deploy). Assim a inscrição feita pelo link pessoal fica ligada ao convidado.
+4. **Retorno do Resend (webhook):** no Resend, **Webhooks → Add Endpoint**:
+   - Endpoint URL: `https://SEU-PROJETO.supabase.co/functions/v1/convites` (a mesma Project URL do passo 1 da configuração, com `/functions/v1/convites` no fim)
+   - Eventos: `email.delivered`, `email.bounced`, `email.complained`, `email.opened`, `email.clicked`, `email.failed`
+   - Depois de criar, copie o **Signing Secret** (`whsec_…`) e adicione em Supabase → Edge Functions → Secrets como `RESEND_WEBHOOK_SECRET`.
+5. **Opcional, para saber quem abriu o e-mail:** Resend → **Domains → eventos.kmbim.com.br → Configuration → Open Tracking** ligado. (Não é preciso ligar o *Click Tracking*: o próprio site registra quem abriu o link pessoal.)
+
+**Uso**
+
+1. Painel → **Convites** → escolha o evento.
+2. **Importar:** copie do Excel as colunas Nome, E-mail e Celular (em qualquer ordem) e cole. Quem tiver só celular fica para o WhatsApp. Dá para copiar a lista de outro evento.
+3. **Textos:** ajuste o assunto, o e-mail e a mensagem de WhatsApp (`{nome}`, `{titulo}`, `{data}`, `{local}`, `{resumo}`, `{palestrante}`, `{link}`), salve e clique em **Enviar convite de teste para mim**.
+4. **Enviar convites por e-mail:** até 80 por dia (o plano gratuito do Resend permite 100 e-mails por dia, e a folga fica para as confirmações de inscrição). O restante fica pendente: clique de novo no dia seguinte. Para mudar o limite, crie o segredo `LIMITE_DIARIO_CONVITES`.
+5. **WhatsApp:** filtro *WhatsApp a enviar* → **Enviar** em cada linha abre o WhatsApp com a mensagem pronta; você confere e envia. O painel marca o envio.
+6. **E-mails inválidos** aparecem como *Inválido*: corrija o endereço na própria linha (ele volta para "não enviado") ou use o WhatsApp.
+7. **Lembrete:** um clique envia um lembrete único para quem recebeu o convite há pelo menos 1 dia e ainda não se inscreveu.
+8. Depois do evento, use **Apagar a lista deste evento** se não for reaproveitá-la (dados pessoais: guarde só o necessário).
+
 ## Desenvolvimento local
 
 ```bash

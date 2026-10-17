@@ -136,4 +136,33 @@ import '../styles/global.css';
   .admin .tabela-insc th, .admin .tabela-insc td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   .admin .tabela-insc th { font: 600 0.75rem var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: #F7FAFA; }
   .admin .tabela-insc select { min-height: 32px; padding: 4px 6px; }
+  .admin .painel-convites { display: grid; gap: 14px; min-width: 0; }
+  .admin .painel-convites > * { min-width: 0; }
+  .admin .numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+  .admin .numeros div { display: grid; gap: 2px; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .admin .numeros strong { font: 700 1.5rem var(--f-display); color: var(--accent); }
+  .admin .numeros span { font-size: 0.82rem; color: var(--muted); }
+  .admin .caixa { display: grid; gap: 10px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .admin .caixa summary { font-weight: 600; cursor: pointer; }
+  .admin .caixa p, .admin .caixa small { color: var(--muted); font-size: 0.88rem; }
+  .admin .caixa code { font: 500 0.82rem var(--f-mono); color: var(--accent); }
+  .admin details.caixa[open] { gap: 12px; }
+  .admin .linha-botoes { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .admin .linha-botoes .botao { min-height: 40px; padding: 6px 14px; font-size: 0.9rem; }
+  .admin .linha-botoes select { width: auto; max-width: 320px; }
+  .admin .linha-botoes .botao--contorno { color: var(--accent); }
+  .admin .botao:disabled { opacity: .5; cursor: not-allowed; }
+  .admin .filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+  .admin .filtros button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font: 500 0.85rem var(--f-body); color: var(--fg); cursor: pointer; }
+  .admin .filtros button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .admin .etiqueta { display: inline-block; padding: 3px 8px; border-radius: 4px; font: 600 0.72rem var(--f-mono); text-transform: uppercase; letter-spacing: .04em; background: var(--bg-alt); color: var(--muted); white-space: nowrap; }
+  .admin .etiqueta[data-tom="info"] { background: #E1EEF0; color: var(--accent); }
+  .admin .etiqueta[data-tom="ok"] { background: #E3F2EA; color: var(--ok); }
+  .admin .etiqueta[data-tom="erro"] { background: #FBE7E5; color: var(--erro); }
+  .admin .tabela-convites { min-width: 980px; }
+  .admin .tabela-convites input { min-height: 32px; padding: 4px 8px; font-size: 0.88rem; min-width: 150px; }
+  .admin .tabela-convites small { color: var(--muted); }
+  .admin .botao--mini { min-height: 30px; padding: 3px 10px; font-size: 0.82rem; color: var(--accent); }
+  .admin .tabela-convites [data-remover] { font-size: 1.3rem; text-decoration: none; }
+  .admin #sel-evento-convite { min-width: 280px; }
 </style>
