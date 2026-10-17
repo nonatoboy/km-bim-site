@@ -20,7 +20,7 @@ Alguns anos depois do curso, a turma está em projetistas, construtoras, concess
 
 Esta roda de conversa é para trocar experiências concretas, sem palestra e sem vendas. Para puxar a conversa, vamos passar por alguns temas: IA no dia a dia (e-mails, atas, relatórios, leitura de editais, normas e contratos); IA junto com o BIM (consultas a modelos e dados, verificação de regras, quantitativos, documentação); o que já existe em projetos lineares, como rodovias, ferrovias, saneamento e energia; onde não dá para confiar no resultado e que cuidados tomar com dados de clientes e de contratos públicos; e o que muda para as equipes.
 
-O encontro tem 1h30 pelo Microsoft Teams, com câmera aberta de preferência. O Marcelo abre com 10 minutos de exemplos práticos e o resto do tempo é conversa entre todos. São só 15 vagas, para que cada um consiga falar.
+O encontro tem 1h30 pelo Microsoft Teams, com câmera aberta de preferência. O Marcelo, que coordenou o curso e deu aulas para a turma, abre com 10 minutos de exemplos práticos e o resto do tempo é conversa entre todos. São só 15 vagas, para que cada um consiga falar.
 
 Traga um caso seu, que deu certo ou não, e uma pergunta que você ainda não conseguiu responder.
 
@@ -40,7 +40,9 @@ Entre 5 minutos antes para testar áudio e câmera. Se puder, pense em um exempl
 
 Olá, [nome],
 
-Estou reunindo a turma da Especialização em BIM para Infraestrutura do Instituto de Engenharia (2018–2020) para uma roda de conversa online sobre inteligência artificial no nosso trabalho.
+Quero reunir os ex-alunos da Especialização em BIM para Infraestrutura do Instituto de Engenharia, que tive o prazer de coordenar entre 2018 e 2020, para uma roda de conversa online sobre inteligência artificial no trabalho com infraestrutura.
+
+Depois de anos discutindo BIM em sala de aula, quero ouvir como vocês estão usando a IA na prática.
 
 A ideia é trocar experiências reais: onde a IA já ajuda no dia a dia e junto com o BIM, o que deu errado e que cuidados tomar. Sem palestra e sem vendas. Eu abro com 10 minutos de exemplos e depois é conversa.
 
@@ -55,9 +57,9 @@ Marcelo Nonato Santos
 
 ## Mensagem individual de WhatsApp
 
-Oi, [nome], tudo bem? Aqui é o Marcelo Nonato, da turma de BIM para Infraestrutura do Instituto de Engenharia.
+Oi, [nome], tudo bem? Aqui é o Marcelo Nonato, coordenador da Especialização em BIM para Infraestrutura do Instituto de Engenharia.
 
-Vou fazer uma roda de conversa online só com a turma, sobre IA e BIM na infraestrutura: o que já funciona, o que não funciona e que cuidados tomar.
+Vou fazer uma roda de conversa online só com os ex-alunos do curso, sobre IA e BIM na infraestrutura: o que já funciona, o que não funciona e que cuidados tomar.
 
 📅 Quarta, 18/11, das 18h às 19h30, pelo Teams, sem gravação
 👥 15 vagas
