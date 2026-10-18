@@ -26,15 +26,18 @@ O convite é pessoal e as vagas são limitadas. Para garantir a sua: {link}`;
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-// Só dígitos, com DDI. Números brasileiros com DDD (10 ou 11 dígitos) ganham o 55 na frente.
+// Só dígitos, com DDI. Com "+" (formato do WhatsApp: +55 11 99907-1788, +1 (248) 760-6955) o DDI já vem no número;
+// sem "+", números brasileiros com DDD (10 ou 11 dígitos) ganham o 55 na frente.
 export function normalizarTelefone(v: string): string {
+  const internacional = /^\s*(\+|00)/.test(v);
   let d = v.replace(/\D/g, '');
   if (d.startsWith('00')) d = d.slice(2);
-  if (d.length === 10 || d.length === 11) d = `55${d}`;
+  if (!internacional && (d.length === 10 || d.length === 11)) d = `55${d}`;
   return d.slice(0, 20);
 }
 
-export const telefoneValido = (t: string) => t.length >= 12;
+// Número completo com DDI (o WhatsApp aceita de 10 a 15 dígitos)
+export const telefoneValido = (t: string) => t.length >= 10 && t.length <= 15;
 
 export function formatarTelefone(t: string): string {
   const m = t.match(/^55(\d{2})(\d{4,5})(\d{4})$/);
