@@ -18,11 +18,19 @@ Um abraço,
 
 export const ASSUNTO_PADRAO = 'Convite: {titulo}';
 
-export const TEXTO_WHATSAPP_PADRAO = `Oi, {nome}! Aqui é o {palestrante}.
+export const TEXTO_WHATSAPP_PADRAO = `Oi, {nome}! Aqui é o {quem}.
 
-Quero convidar você para {titulo}, {data}, pelo {local}.
+Quero convidar você para {tipo} *{titulo}*, {data}, pelo {local}.
 
 O convite é pessoal e as vagas são limitadas. Para garantir a sua: {link}`;
+
+// {tipo}: "a roda de conversa", "o webinar"… (com artigo, para caber em "convidar você para {tipo}")
+export const TIPO_COM_ARTIGO: Record<string, string> = {
+  webinar: 'o webinar', treinamento: 'o treinamento', roda_conversa: 'a roda de conversa', workshop: 'o workshop', outro: 'o evento',
+};
+
+// {quem}: nome curto de quem convida ("Marcelo Nonato Santos" → "Marcelo Nonato")
+export const nomeCurto = (nome: string) => nome.trim().split(/\s+/).slice(0, 2).join(' ');
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 

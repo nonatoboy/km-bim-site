@@ -3,7 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
-  ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, dataConvite, formatarTelefone, lerLista, normalizarTelefone, preencher, primeiroNome, telefoneValido,
+  ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, TIPO_COM_ARTIGO, dataConvite, nomeCurto, formatarTelefone, lerLista, normalizarTelefone, preencher, primeiroNome, telefoneValido,
 } from '../lib/convites';
 
 type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url' | 'dataHora';
@@ -310,7 +310,7 @@ async function listarConvites() {
   const area = $('#area');
   const rolagem = window.scrollY;
   const { data: eventos, error } = await db.from('eventos')
-    .select('id, slug, titulo, resumo, inicio, fim, local, palestrante, convite_assunto, convite_texto, convite_whatsapp')
+    .select('id, slug, titulo, tipo, resumo, inicio, fim, local, palestrante, convite_assunto, convite_texto, convite_whatsapp')
     .order('inicio', { ascending: false });
   if (error) { area.innerHTML = `<p class="erro">${esc(error.message)}. Rode a migration de convites no Supabase (README, seção Convites).</p>`; return; }
   if (!eventos.length) { area.innerHTML = '<div class="vazio"><h2>Nenhum evento cadastrado</h2><p>Cadastre um evento na aba Eventos.</p></div>'; return; }
@@ -332,7 +332,8 @@ async function listarConvites() {
   const inscricao = (c: any) => insc!.find((i) => i.convidado_id === c.id) ?? (c.email ? insc!.find((i) => i.email.toLowerCase() === c.email.toLowerCase()) : undefined);
   const valores = (c: any) => ({
     nome: primeiroNome(c.nome), titulo: ev.titulo, data: dataConvite(ev.inicio), local: ev.local || 'Microsoft Teams',
-    resumo: ev.resumo ?? '', palestrante: ev.palestrante ?? '', link: link(c),
+    resumo: ev.resumo ?? '', palestrante: ev.palestrante ?? '', quem: nomeCurto(ev.palestrante ?? ''),
+    tipo: TIPO_COM_ARTIGO[ev.tipo] ?? 'o evento', link: link(c),
   });
   const textoWhats = ev.convite_whatsapp || TEXTO_WHATSAPP_PADRAO;
   const whats = (c: any) => `https://wa.me/${c.telefone}?text=${encodeURIComponent(preencher(textoWhats, valores(c)))}`;
@@ -385,7 +386,7 @@ async function listarConvites() {
 
       <details class="caixa" data-caixa="textos" ${caixasAbertas.has('textos') ? 'open' : ''}>
         <summary>2. Textos do convite</summary>
-        <p>Use <code>{nome}</code> (primeiro nome), <code>{titulo}</code>, <code>{data}</code>, <code>{local}</code>, <code>{resumo}</code>, <code>{palestrante}</code> e <code>{link}</code> (link pessoal de inscrição). No e-mail, uma linha só com <code>{link}</code> vira o botão "Garantir minha vaga".</p>
+        <p>Use <code>{nome}</code> (primeiro nome), <code>{titulo}</code>, <code>{data}</code>, <code>{local}</code>, <code>{resumo}</code>, <code>{palestrante}</code> (nome completo), <code>{quem}</code> (nome curto, ex.: Marcelo Nonato), <code>{tipo}</code> (ex.: a roda de conversa, o webinar) e <code>{link}</code> (link pessoal de inscrição). No WhatsApp, <code>*texto*</code> fica em negrito. No e-mail, uma linha só com <code>{link}</code> vira o botão "Garantir minha vaga".</p>
         <form id="form-textos" class="editor">
           <label class="campo"><span>Assunto do e-mail</span><input name="convite_assunto" value="${esc(ev.convite_assunto || ASSUNTO_PADRAO)}"></label>
           <label class="campo"><span>Texto do e-mail</span><textarea name="convite_texto" rows="12">${esc(ev.convite_texto || TEXTO_EMAIL_PADRAO)}</textarea></label>

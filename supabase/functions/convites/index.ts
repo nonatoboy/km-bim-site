@@ -25,9 +25,13 @@ const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFor
 const dataHora = (iso: string) => fmt(iso, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).replace(' às ', ', às ');
 const dataCurta = (iso: string) => fmt(iso, { day: '2-digit', month: '2-digit' });
 const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? '';
+const nomeCurto = (nome: string) => nome.trim().split(/\s+/).slice(0, 2).join(' ');
+const TIPO_COM_ARTIGO: Record<string, string> = {
+  webinar: 'o webinar', treinamento: 'o treinamento', roda_conversa: 'a roda de conversa', workshop: 'o workshop', outro: 'o evento',
+};
 
-const CAMPOS_EVENTO = 'id, slug, titulo, resumo, inicio, fim, local, palestrante, vagas, convite_assunto, convite_texto';
-interface Evento { id: string; slug: string; titulo: string; resumo: string; inicio: string; fim: string; local: string; palestrante: string; vagas: number | null; convite_assunto: string; convite_texto: string }
+const CAMPOS_EVENTO = 'id, slug, titulo, tipo, resumo, inicio, fim, local, palestrante, vagas, convite_assunto, convite_texto';
+interface Evento { id: string; slug: string; titulo: string; tipo: string; resumo: string; inicio: string; fim: string; local: string; palestrante: string; vagas: number | null; convite_assunto: string; convite_texto: string }
 interface Convidado { id: string; nome: string; email: string; token: string }
 
 const TEXTO_PADRAO = `Olá, {nome}!
@@ -84,7 +88,8 @@ function remetente(ev: Evento) {
 function montarConvite(ev: Evento, nome: string, link: string) {
   const valores = {
     nome: primeiroNome(nome), titulo: ev.titulo, data: dataHora(ev.inicio), local: ev.local || 'Microsoft Teams',
-    resumo: ev.resumo ?? '', palestrante: ev.palestrante ?? '',
+    resumo: ev.resumo ?? '', palestrante: ev.palestrante ?? '', quem: nomeCurto(ev.palestrante ?? ''),
+    tipo: TIPO_COM_ARTIGO[ev.tipo] ?? 'o evento',
   };
   const assunto = (ev.convite_assunto || 'Convite: {titulo}').replace(/\{(\w+)\}/g, (m, k) => (valores as Record<string, string>)[k] ?? m);
   const corpo = textoParaHtml(ev.convite_texto || TEXTO_PADRAO, valores, link);
