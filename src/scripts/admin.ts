@@ -294,7 +294,7 @@ const FILTROS: [string, string][] = [
   ['whatsapp', 'WhatsApp a enviar'], ['invalidos', 'E-mail inválido'], ['sem_email', 'Sem e-mail'],
 ];
 let eventoConvites = '';
-let filtroConvites = 'sem_resposta';
+let filtroConvites = 'todos';
 const caixasAbertas = new Set<string>(); // passos do painel que ficam abertos ao recarregar a lista
 
 async function chamarConvites(corpo: Record<string, unknown>) {
@@ -322,18 +322,14 @@ async function listarConvites() {
   const ev = eventos.find((e) => e.id === eventoConvites)!;
   const [{ data: lista = [], error: erroLista }, { data: insc = [] }, { data: outros = [] }] = await Promise.all([
     db.from('convidados').select('*').eq('evento_id', ev.id).order('nome'),
-    db.from('inscricoes_evento').select('email, telefone, status, convidado_id').eq('evento_id', ev.id),
+    db.from('inscricoes_evento').select('nome, email, telefone, status, convidado_id').eq('evento_id', ev.id),
     db.from('convidados').select('evento_id').neq('evento_id', ev.id),
   ]);
   if (erroLista) { area.innerHTML = `<p class="erro">${esc(erroLista.message)}. Rode a migration de convites no Supabase (README, seção Convites).</p>`; return; }
 
   const site = location.origin.includes('localhost') ? 'https://kmbim.com.br' : location.origin;
   const link = (c: any) => `${site}/eventos/${ev.slug}?c=${c.token}`;
-  // Inscrição do convidado: pelo link pessoal (convidado_id), pelo mesmo e-mail ou pelo mesmo celular.
-  // Assim contam também as inscrições feitas pelo link geral (ex.: divulgado no grupo) ou antes dos convites.
-  const inscricao = (c: any) => insc!.find((i) => i.convidado_id === c.id)
-    ?? (c.email ? insc!.find((i) => i.email.toLowerCase() === c.email.toLowerCase()) : undefined)
-    ?? (c.telefone ? insc!.find((i) => mesmoTelefone(c.telefone, i.telefone ?? '')) : undefined);
+  const inscricao = (c: any) => vinculo.get(c.id);
   const valores = (c: any) => ({
     nome: primeiroNome(c.nome), titulo: ev.titulo, data: dataConvite(ev.inicio), local: ev.local || 'Microsoft Teams',
     resumo: ev.resumo ?? '', palestrante: ev.palestrante ?? '', quem: nomeCurto(ev.palestrante ?? ''),
@@ -343,6 +339,20 @@ async function listarConvites() {
   const whats = (c: any) => `https://wa.me/${c.telefone}?text=${encodeURIComponent(preencher(textoWhats, valores(c)))}`;
 
   const L = lista!;
+  // Inscrição de cada convidado: pelo link pessoal (convidado_id), pelo mesmo e-mail ou pelo mesmo celular,
+  // nessa ordem. Assim contam também as inscrições feitas pelo link geral (ex.: divulgado no grupo) ou antes
+  // dos convites. Cada inscrição vale para um convidado só.
+  const vinculo = new Map<string, any>();
+  const usadas = new Set<any>();
+  const ligar = (igual: (c: any, i: any) => boolean) => L.forEach((c) => {
+    if (vinculo.has(c.id)) return;
+    const i = insc!.find((x) => !usadas.has(x) && igual(c, x));
+    if (i) { vinculo.set(c.id, i); usadas.add(i); }
+  });
+  ligar((c, i) => i.convidado_id === c.id);
+  ligar((c, i) => !!c.email && i.email.toLowerCase() === c.email.toLowerCase());
+  ligar((c, i) => !!c.telefone && mesmoTelefone(c.telefone, i.telefone ?? ''));
+  const foraDaLista = insc!.filter((i) => !usadas.has(i));
   const recebeu = (c: any) => ['enviado', 'entregue', 'aberto', 'clicou'].includes(c.email_status);
   const pendentesEmail = L.filter((c) => c.email && ['pendente', 'erro'].includes(c.email_status)).length;
   const umDia = Date.now() - 24 * 3600_000; // lembrete só para quem recebeu o convite há 1 dia ou mais
@@ -375,6 +385,12 @@ async function listarConvites() {
         <div><strong>${n((c) => !!c.link_aberto_em)}</strong><span>abriram o link</span></div>
         <div><strong>${n((c) => !!inscricao(c))}</strong><span>inscritos</span></div>
       </div>
+
+      ${foraDaLista.length ? `<details class="caixa" data-caixa="fora" ${caixasAbertas.has('fora') ? 'open' : ''}>
+        <summary>${foraDaLista.length} inscrição(ões) sem convidado correspondente</summary>
+        <p>Estas pessoas se inscreveram (aba Inscrições), mas o e-mail e o celular informados não batem com ninguém da lista de convidados. Se forem convidados, corrija o e-mail ou o celular na linha do convidado.</p>
+        <ul class="fora-lista">${foraDaLista.map((i) => `<li><strong>${esc(i.nome)}</strong> · ${esc(i.email)} · ${esc(i.telefone)} · ${esc(STATUS_TXT[i.status] ?? i.status)}</li>`).join('')}</ul>
+      </details>` : ''}
 
       <details class="caixa" data-caixa="importar" ${!L.length || caixasAbertas.has('importar') ? 'open' : ''}>
         <summary>1. Importar convidados</summary>

@@ -33,11 +33,13 @@ export const TIPO_COM_ARTIGO: Record<string, string> = {
 export const nomeCurto = (nome: string) => nome.trim().split(/\s+/).slice(0, 2).join(' ');
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Caracteres invisíveis que vêm junto ao copiar números do WhatsApp (marcas de direção do texto) e espaço fixo
+const limpar = (v: string) => v.replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/\u00a0/g, ' ');
 
 // Só dígitos, com DDI. Com "+" (formato do WhatsApp: +55 11 99907-1788, +1 (248) 760-6955) o DDI já vem no número;
 // sem "+", números brasileiros com DDD (10 ou 11 dígitos) ganham o 55 na frente.
 export function normalizarTelefone(v: string): string {
-  const internacional = /^\s*(\+|00)/.test(v);
+  const internacional = /^\s*(\+|00)/.test(limpar(v));
   let d = v.replace(/\D/g, '');
   if (d.startsWith('00')) d = d.slice(2);
   if (!internacional && (d.length === 10 || d.length === 11)) d = `55${d}`;
@@ -61,7 +63,7 @@ export function formatarTelefone(t: string): string {
 // Lista colada do Excel (colunas separadas por tabulação), CSV (; ou ,) ou digitada.
 // As colunas podem vir em qualquer ordem: o e-mail tem @, o celular é feito de dígitos, o resto é o nome.
 export function lerLista(texto: string): { convidados: NovoConvidado[]; ignoradas: string[] } {
-  const linhas = texto.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const linhas = limpar(texto).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const convidados: NovoConvidado[] = [];
   const ignoradas: string[] = [];
   for (const linha of linhas) {
