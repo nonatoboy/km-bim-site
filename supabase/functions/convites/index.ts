@@ -32,7 +32,7 @@ const TIPO_COM_ARTIGO: Record<string, string> = {
 
 const CAMPOS_EVENTO = 'id, slug, titulo, tipo, resumo, inicio, fim, local, palestrante, vagas, convite_assunto, convite_texto';
 interface Evento { id: string; slug: string; titulo: string; tipo: string; resumo: string; inicio: string; fim: string; local: string; palestrante: string; vagas: number | null; convite_assunto: string; convite_texto: string }
-interface Convidado { id: string; nome: string; email: string; token: string }
+interface Convidado { id: string; nome: string; email: string; telefone: string; token: string }
 
 const TEXTO_PADRAO = `Olá, {nome}!
 
@@ -149,17 +149,20 @@ async function enviar(db: SupabaseClient, ev: Evento, tipo: 'convite' | 'lembret
     pessoas = (data ?? []) as Convidado[];
   } else {
     const [{ data }, { data: insc }, { data: restantes }] = await Promise.all([
-      db.from('convidados').select('id, nome, email, token')
+      db.from('convidados').select('id, nome, email, telefone, token')
         .eq('evento_id', ev.id).neq('email', '').in('email_status', ['enviado', 'entregue', 'aberto', 'clicou'])
         .is('lembrete_enviado_em', null).lt('email_enviado_em', new Date(Date.now() - 24 * 3600_000).toISOString()) // convite com 1 dia ou mais
         .order('criado_em'),
-      db.from('inscricoes_evento').select('email, convidado_id').eq('evento_id', ev.id),
+      db.from('inscricoes_evento').select('email, telefone, convidado_id').eq('evento_id', ev.id),
       db.rpc('vagas_restantes', { p_evento: ev.id }),
     ]);
-    // Quem já se inscreveu (ou se inscreveu e cancelou) não recebe lembrete.
+    // Quem já se inscreveu (ou se inscreveu e cancelou), pelo link pessoal, e-mail ou celular, não recebe lembrete.
     const emails = new Set((insc ?? []).map((i) => String(i.email).toLowerCase()));
     const ids = new Set((insc ?? []).map((i) => i.convidado_id).filter(Boolean));
-    pessoas = ((data ?? []) as Convidado[]).filter((p) => !ids.has(p.id) && !emails.has(p.email.toLowerCase()));
+    // Celular: compara os 10 últimos dígitos (cada um digita de um jeito no formulário)
+    const fones = new Set((insc ?? []).map((i) => String(i.telefone ?? '').replace(/\D/g, '').slice(-10)).filter((t) => t.length === 10));
+    pessoas = ((data ?? []) as Convidado[]).filter((p) => !ids.has(p.id) && !emails.has(p.email.toLowerCase())
+      && !(p.telefone && fones.has(p.telefone.slice(-10))));
     vagas = typeof restantes === 'number' ? restantes : null;
   }
 

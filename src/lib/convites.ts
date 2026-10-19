@@ -44,6 +44,12 @@ export function normalizarTelefone(v: string): string {
   return d.slice(0, 20);
 }
 
+// Mesmo celular? Compara os 10 últimos dígitos, porque cada um digita de um jeito no formulário
+// ("(11) 99907-1788", "011 99907-1788", "+55 11 99907-1788"). O convidado já vem normalizado.
+export const chaveTelefone = (t: string) => normalizarTelefone(t).slice(-10);
+export const mesmoTelefone = (normalizado: string, digitado: string) =>
+  normalizado.length >= 10 && chaveTelefone(digitado).length === 10 && normalizado.slice(-10) === chaveTelefone(digitado);
+
 // Número completo com DDI (o WhatsApp aceita de 10 a 15 dígitos)
 export const telefoneValido = (t: string) => t.length >= 10 && t.length <= 15;
 

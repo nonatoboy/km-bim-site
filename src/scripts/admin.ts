@@ -3,7 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
-  ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, TIPO_COM_ARTIGO, dataConvite, nomeCurto, formatarTelefone, lerLista, normalizarTelefone, preencher, primeiroNome, telefoneValido,
+  ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, TIPO_COM_ARTIGO, dataConvite, nomeCurto, formatarTelefone, lerLista, mesmoTelefone, normalizarTelefone, preencher, primeiroNome, telefoneValido,
 } from '../lib/convites';
 
 type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url' | 'dataHora';
@@ -322,14 +322,18 @@ async function listarConvites() {
   const ev = eventos.find((e) => e.id === eventoConvites)!;
   const [{ data: lista = [], error: erroLista }, { data: insc = [] }, { data: outros = [] }] = await Promise.all([
     db.from('convidados').select('*').eq('evento_id', ev.id).order('nome'),
-    db.from('inscricoes_evento').select('email, status, convidado_id').eq('evento_id', ev.id),
+    db.from('inscricoes_evento').select('email, telefone, status, convidado_id').eq('evento_id', ev.id),
     db.from('convidados').select('evento_id').neq('evento_id', ev.id),
   ]);
   if (erroLista) { area.innerHTML = `<p class="erro">${esc(erroLista.message)}. Rode a migration de convites no Supabase (README, seção Convites).</p>`; return; }
 
   const site = location.origin.includes('localhost') ? 'https://kmbim.com.br' : location.origin;
   const link = (c: any) => `${site}/eventos/${ev.slug}?c=${c.token}`;
-  const inscricao = (c: any) => insc!.find((i) => i.convidado_id === c.id) ?? (c.email ? insc!.find((i) => i.email.toLowerCase() === c.email.toLowerCase()) : undefined);
+  // Inscrição do convidado: pelo link pessoal (convidado_id), pelo mesmo e-mail ou pelo mesmo celular.
+  // Assim contam também as inscrições feitas pelo link geral (ex.: divulgado no grupo) ou antes dos convites.
+  const inscricao = (c: any) => insc!.find((i) => i.convidado_id === c.id)
+    ?? (c.email ? insc!.find((i) => i.email.toLowerCase() === c.email.toLowerCase()) : undefined)
+    ?? (c.telefone ? insc!.find((i) => mesmoTelefone(c.telefone, i.telefone ?? '')) : undefined);
   const valores = (c: any) => ({
     nome: primeiroNome(c.nome), titulo: ev.titulo, data: dataConvite(ev.inicio), local: ev.local || 'Microsoft Teams',
     resumo: ev.resumo ?? '', palestrante: ev.palestrante ?? '', quem: nomeCurto(ev.palestrante ?? ''),
