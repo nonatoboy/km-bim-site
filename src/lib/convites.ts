@@ -62,6 +62,7 @@ export function formatarTelefone(t: string): string {
 
 // Lista colada do Excel (colunas separadas por tabulação), CSV (; ou ,) ou digitada.
 // As colunas podem vir em qualquer ordem: o e-mail tem @, o celular é feito de dígitos, o resto é o nome.
+// E-mail e celular são opcionais.
 export function lerLista(texto: string): { convidados: NovoConvidado[]; ignoradas: string[] } {
   const linhas = limpar(texto).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const convidados: NovoConvidado[] = [];
@@ -78,8 +79,9 @@ export function lerLista(texto: string): { convidados: NovoConvidado[]; ignorada
       else if (!telefone && /^[\d\s()+.\-]+$/.test(c) && c.replace(/\D/g, '').length >= 8) telefone = normalizarTelefone(c);
       else if (!nome) nome = c.replace(/\s+/g, ' ');
     }
-    if (!email && !telefone) {
-      if (!/^nome\b/i.test(nome)) ignoradas.push(linha); // a linha de cabeçalho não conta como erro
+    // Só o nome também vale (convite enviado por mensagem no LinkedIn, por exemplo); a linha de cabeçalho é pulada.
+    if (!email && !telefone && (!nome || /^nome\b/i.test(nome))) {
+      if (!nome) ignoradas.push(linha);
       continue;
     }
     if (!nome) nome = email ? email.split('@')[0] : formatarTelefone(telefone);
@@ -99,4 +101,24 @@ export function dataConvite(iso: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
     timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso)).replace(' às ', ', às ');
+}
+
+// Mesmo nome, ignorando acentos, maiúsculas e espaços (para não repetir convidados importados só com o nome)
+export const chaveNome = (nome: string) => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+// Texto para colar em outra rede (LinkedIn): sem os asteriscos de negrito do WhatsApp
+export const semNegrito = (t: string) => t.replace(/\*([^*\n]+)\*/g, '$1');
+
+// Copia para a área de transferência (com alternativa para navegadores antigos)
+export async function copiarTexto(texto: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(texto); return true; } catch { /* tenta o método antigo */ }
+  const t = document.createElement('textarea');
+  t.value = texto;
+  t.style.position = 'fixed';
+  t.style.opacity = '0';
+  document.body.append(t);
+  t.select();
+  const ok = document.execCommand('copy');
+  t.remove();
+  return ok;
 }

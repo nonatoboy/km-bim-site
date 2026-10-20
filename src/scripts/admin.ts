@@ -3,7 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
-  ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, TIPO_COM_ARTIGO, dataConvite, nomeCurto, formatarTelefone, lerLista, mesmoTelefone, normalizarTelefone, preencher, primeiroNome, telefoneValido,
+  ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, TIPO_COM_ARTIGO, dataConvite, nomeCurto, chaveNome, copiarTexto, formatarTelefone, lerLista, mesmoTelefone, semNegrito, normalizarTelefone, preencher, primeiroNome, telefoneValido,
 } from '../lib/convites';
 
 type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url' | 'dataHora';
@@ -284,6 +284,7 @@ async function listarInscricoes() {
 
 // ---------------------------------------------------------------- convites individuais
 // Lista de convidados por evento: importar, enviar por e-mail (Edge Function "convites"), abrir o WhatsApp
+// ou copiar a mensagem (para LinkedIn e outras redes)
 // com a mensagem pronta e acompanhar quem recebeu, abriu o link e se inscreveu.
 const ST_EMAIL: Record<string, [string, string]> = {
   pendente: ['Não enviado', ''], enviado: ['Enviado', 'info'], entregue: ['Entregue', 'info'], aberto: ['Abriu', 'ok'],
@@ -291,7 +292,7 @@ const ST_EMAIL: Record<string, [string, string]> = {
 };
 const FILTROS: [string, string][] = [
   ['todos', 'Todos'], ['sem_resposta', 'Ainda não se inscreveram'], ['inscritos', 'Inscritos'],
-  ['whatsapp', 'WhatsApp a enviar'], ['invalidos', 'E-mail inválido'], ['sem_email', 'Sem e-mail'],
+  ['whatsapp', 'Mensagem a enviar'], ['invalidos', 'E-mail inválido'], ['sem_email', 'Sem e-mail'],
 ];
 let eventoConvites = '';
 let filtroConvites = 'todos';
@@ -362,7 +363,8 @@ async function listarConvites() {
     todos: () => true,
     sem_resposta: (c) => !inscricao(c),
     inscritos: (c) => !!inscricao(c),
-    whatsapp: (c) => telefoneValido(c.telefone) && !c.whatsapp_enviado_em && !inscricao(c),
+    // Mensagem manual: quem tem celular (WhatsApp) ou não tem e-mail (LinkedIn etc.)
+    whatsapp: (c) => (telefoneValido(c.telefone) || !c.email) && !c.whatsapp_enviado_em && !inscricao(c),
     invalidos: (c) => ['devolvido', 'spam', 'erro'].includes(c.email_status),
     sem_email: (c) => !c.email,
   };
@@ -381,7 +383,7 @@ async function listarConvites() {
         <div><strong>${n((c) => recebeu(c) || ['devolvido', 'spam'].includes(c.email_status))}</strong><span>e-mails enviados</span></div>
         <div><strong>${n((c) => ['aberto', 'clicou'].includes(c.email_status))}</strong><span>abriram o e-mail</span></div>
         <div><strong>${n((c) => ['devolvido', 'spam', 'erro'].includes(c.email_status))}</strong><span>e-mails inválidos</span></div>
-        <div><strong>${n((c) => !!c.whatsapp_enviado_em)}</strong><span>WhatsApp enviados</span></div>
+        <div><strong>${n((c) => !!c.whatsapp_enviado_em)}</strong><span>mensagens enviadas (WhatsApp ou copiadas)</span></div>
         <div><strong>${n((c) => !!c.link_aberto_em)}</strong><span>abriram o link</span></div>
         <div><strong>${n((c) => !!inscricao(c))}</strong><span>inscritos</span></div>
       </div>
@@ -394,7 +396,7 @@ async function listarConvites() {
 
       <details class="caixa" data-caixa="importar" ${!L.length || caixasAbertas.has('importar') ? 'open' : ''}>
         <summary>1. Importar convidados</summary>
-        <p>Copie do Excel as colunas <strong>Nome</strong>, <strong>E-mail</strong> e <strong>Celular</strong> (em qualquer ordem) e cole abaixo. Quem tiver só celular recebe por WhatsApp; quem já está na lista é ignorado.</p>
+        <p>Copie do Excel as colunas <strong>Nome</strong>, <strong>E-mail</strong> e <strong>Celular</strong> (em qualquer ordem) e cole abaixo. E-mail e celular são opcionais: quem tiver só celular recebe por WhatsApp, e quem tiver só o nome recebe a mensagem copiada (para colar no LinkedIn, por exemplo). Quem já está na lista é ignorado.</p>
         <textarea id="lista-colar" rows="6" placeholder="Ana Souza	ana@exemplo.com	(11) 98765-4321"></textarea>
         <div class="linha-botoes">
           <button type="button" class="botao botao--primario" id="importar">Adicionar à lista</button>
@@ -406,11 +408,11 @@ async function listarConvites() {
 
       <details class="caixa" data-caixa="textos" ${caixasAbertas.has('textos') ? 'open' : ''}>
         <summary>2. Textos do convite</summary>
-        <p>Use <code>{nome}</code> (primeiro nome), <code>{titulo}</code>, <code>{data}</code>, <code>{local}</code>, <code>{resumo}</code>, <code>{palestrante}</code> (nome completo), <code>{quem}</code> (nome curto, ex.: Marcelo Nonato), <code>{tipo}</code> (ex.: a roda de conversa, o webinar) e <code>{link}</code> (link pessoal de inscrição). No WhatsApp, <code>*texto*</code> fica em negrito. No e-mail, uma linha só com <code>{link}</code> vira o botão "Garantir minha vaga".</p>
+        <p>Use <code>{nome}</code> (primeiro nome), <code>{titulo}</code>, <code>{data}</code>, <code>{local}</code>, <code>{resumo}</code>, <code>{palestrante}</code> (nome completo), <code>{quem}</code> (nome curto, ex.: Marcelo Nonato), <code>{tipo}</code> (ex.: a roda de conversa, o webinar) e <code>{link}</code> (link pessoal de inscrição). No WhatsApp, <code>*texto*</code> fica em negrito (ao copiar para o LinkedIn, os asteriscos são retirados). No e-mail, uma linha só com <code>{link}</code> vira o botão "Garantir minha vaga".</p>
         <form id="form-textos" class="editor">
           <label class="campo"><span>Assunto do e-mail</span><input name="convite_assunto" value="${esc(ev.convite_assunto || ASSUNTO_PADRAO)}"></label>
           <label class="campo"><span>Texto do e-mail</span><textarea name="convite_texto" rows="12">${esc(ev.convite_texto || TEXTO_EMAIL_PADRAO)}</textarea></label>
-          <label class="campo"><span>Mensagem de WhatsApp</span><textarea name="convite_whatsapp" rows="7">${esc(textoWhats)}</textarea></label>
+          <label class="campo"><span>Mensagem de WhatsApp e LinkedIn</span><textarea name="convite_whatsapp" rows="7">${esc(textoWhats)}</textarea></label>
           <div class="linha-botoes">
             <button class="botao botao--primario" type="submit">Salvar textos</button>
             <button class="botao botao--contorno" type="button" data-teste="convite">Enviar convite de teste para mim</button>
@@ -425,13 +427,13 @@ async function listarConvites() {
           <button type="button" class="botao botao--cta" id="enviar-convites" ${pendentesEmail ? '' : 'disabled'}>Enviar convites por e-mail (${pendentesEmail})</button>
           <button type="button" class="botao botao--contorno" id="enviar-lembrete" ${paraLembrete ? '' : 'disabled'}>Enviar lembrete a quem não se inscreveu (${paraLembrete})</button>
         </div>
-        <small>Até 80 e-mails por dia (limite do plano gratuito do Resend, com folga para as confirmações de inscrição). O que passar do limite fica pendente: clique de novo no dia seguinte. O lembrete vai só para quem recebeu o convite há pelo menos 1 dia. O WhatsApp é enviado um a um, pela lista abaixo.</small>
+        <small>Até 80 e-mails por dia (limite do plano gratuito do Resend, com folga para as confirmações de inscrição). O que passar do limite fica pendente: clique de novo no dia seguinte. O lembrete vai só para quem recebeu o convite há pelo menos 1 dia. O WhatsApp e as mensagens copiadas (LinkedIn) são enviados um a um, pela lista abaixo.</small>
       </div>
 
       <nav class="filtros" aria-label="Filtrar convidados">${FILTROS.map(([v, r]) => `<button type="button" data-filtro="${v}" aria-pressed="${v === filtroConvites}">${r} (${L.filter(filtrar[v]).length})</button>`).join('')}</nav>
 
       ${visiveis.length ? `<div class="tabela-insc"><table class="tabela-convites">
-        <thead><tr><th>Nome</th><th>E-mail</th><th>Situação do e-mail</th><th>Celular</th><th>WhatsApp</th><th>Abriu o link</th><th>Inscrição</th><th></th></tr></thead>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Situação do e-mail</th><th>Celular</th><th>Mensagem</th><th>Abriu o link</th><th>Inscrição</th><th></th></tr></thead>
         <tbody>${visiveis.map((c) => {
           const [st, tom] = c.email ? ST_EMAIL[c.email_status] ?? [c.email_status, ''] : ['Sem e-mail', ''];
           const i = inscricao(c);
@@ -441,8 +443,8 @@ async function listarConvites() {
             <td><span class="etiqueta" data-tom="${tom}" title="${esc(c.email_erro)}">${esc(st)}</span>${c.lembrete_enviado_em ? '<small> · lembrete enviado</small>' : ''}</td>
             <td><input data-editar="telefone" value="${esc(formatarTelefone(c.telefone))}" placeholder="—" aria-label="Celular de ${esc(c.nome)}"></td>
             <td>${telefoneValido(c.telefone)
-              ? `<a class="botao botao--contorno botao--mini" href="${esc(whats(c))}" target="_blank" rel="noopener" data-whats>${c.whatsapp_enviado_em ? 'Reenviar' : 'Enviar'}</a>${c.whatsapp_enviado_em ? `<small> ✓ ${esc(dataBr(c.whatsapp_enviado_em))}</small>` : ''}`
-              : '<small>—</small>'}</td>
+              ? `<a class="botao botao--contorno botao--mini" href="${esc(whats(c))}" target="_blank" rel="noopener" data-whats title="Abre o WhatsApp e também copia a mensagem">${c.whatsapp_enviado_em ? 'Reenviar' : 'WhatsApp'}</a>`
+              : ''}<button type="button" class="botao botao--contorno botao--mini" data-copiar title="Copia a mensagem para colar no LinkedIn ou em outra rede">${telefoneValido(c.telefone) ? 'Copiar' : c.whatsapp_enviado_em ? 'Copiar de novo' : 'Copiar convite'}</button>${c.whatsapp_enviado_em ? `<small> ✓ ${esc(dataBr(c.whatsapp_enviado_em))}</small>` : ''}</td>
             <td>${c.link_aberto_em ? esc(dataBr(c.link_aberto_em)) : '<small>—</small>'}</td>
             <td>${i ? `<span class="etiqueta" data-tom="${i.status === 'confirmada' ? 'ok' : i.status === 'cancelada' ? 'erro' : 'info'}">${esc(STATUS_TXT[i.status] ?? i.status)}</span>` : '<small>—</small>'}</td>
             <td><button type="button" class="link" data-remover aria-label="Remover ${esc(c.nome)}">×</button></td></tr>`;
@@ -466,17 +468,20 @@ async function listarConvites() {
     const { convidados, ignoradas } = lerLista(($('#lista-colar') as HTMLTextAreaElement).value);
     const emails = new Set(L.map((c) => c.email.toLowerCase()).filter(Boolean));
     const fones = new Set(L.map((c) => c.telefone).filter(Boolean));
+    const soNome = new Set(L.filter((c) => !c.email && !c.telefone).map((c) => chaveNome(c.nome)));
     const novos = convidados.filter((c) => {
       if ((c.email && emails.has(c.email)) || (c.telefone && fones.has(c.telefone))) return false;
+      if (!c.email && !c.telefone && soNome.has(chaveNome(c.nome))) return false;
       if (c.email) emails.add(c.email);
       if (c.telefone) fones.add(c.telefone);
+      if (!c.email && !c.telefone) soNome.add(chaveNome(c.nome));
       return true;
     });
-    if (!novos.length) { aviso(convidados.length ? 'Todos já estavam na lista.' : 'Nenhuma linha com e-mail ou celular encontrada.', 'erro'); return; }
+    if (!novos.length) { aviso(convidados.length ? 'Todos já estavam na lista.' : 'Nenhum nome encontrado no texto colado.', 'erro'); return; }
     const { error: e } = await db.from('convidados').insert(novos.map((c) => ({ ...c, evento_id: ev.id })));
     if (e) { aviso(e.message, 'erro'); return; }
     const repetidos = convidados.length - novos.length;
-    aviso(`${novos.length} convidado(s) adicionado(s).${repetidos ? ` ${repetidos} já estavam na lista.` : ''}${ignoradas.length ? ` ${ignoradas.length} linha(s) sem e-mail nem celular foram ignoradas.` : ''}`);
+    aviso(`${novos.length} convidado(s) adicionado(s).${repetidos ? ` ${repetidos} já estavam na lista.` : ''}${ignoradas.length ? ` ${ignoradas.length} linha(s) sem nome foram ignoradas.` : ''}`);
     listarConvites();
   });
   area.querySelector('#copiar')?.addEventListener('click', async () => {
@@ -484,7 +489,9 @@ async function listarConvites() {
     const { data: deOutro = [] } = await db.from('convidados').select('nome, email, telefone').eq('evento_id', origem);
     const emails = new Set(L.map((c) => c.email.toLowerCase()).filter(Boolean));
     const fones = new Set(L.map((c) => c.telefone).filter(Boolean));
-    const novos = deOutro!.filter((c) => !(c.email && emails.has(c.email.toLowerCase())) && !(c.telefone && fones.has(c.telefone)));
+    const soNome = new Set(L.filter((c) => !c.email && !c.telefone).map((c) => chaveNome(c.nome)));
+    const novos = deOutro!.filter((c) => !(c.email && emails.has(c.email.toLowerCase())) && !(c.telefone && fones.has(c.telefone))
+      && !(!c.email && !c.telefone && soNome.has(chaveNome(c.nome))));
     if (!novos.length) { aviso('Todos já estavam na lista.', 'erro'); return; }
     const { error: e } = await db.from('convidados').insert(novos.map((c) => ({ ...c, evento_id: ev.id })));
     if (e) { aviso(e.message, 'erro'); return; }
@@ -524,11 +531,22 @@ async function listarConvites() {
   envio('#enviar-convites', 'enviar', `Enviar o convite por e-mail para ${pendentesEmail} pessoa(s)? Confira antes o e-mail de teste.`);
   envio('#enviar-lembrete', 'lembrete', `Enviar o lembrete para ${paraLembrete} pessoa(s) que receberam o convite e ainda não se inscreveram?`);
 
-  // Tabela: WhatsApp, edição de e-mail/celular, remover
+  // Tabela: WhatsApp / mensagem copiada, edição de e-mail/celular, remover
+  const mensagem = (id: string) => preencher(textoWhats, valores(L.find((x) => x.id === id)));
+  const marcarEnviada = (id: string) => db.from('convidados').update({ whatsapp_enviado_em: new Date().toISOString() }).eq('id', id);
   area.querySelectorAll<HTMLAnchorElement>('[data-whats]').forEach((a) => a.addEventListener('click', async () => {
     const id = a.closest('tr')!.dataset.id!;
-    await db.from('convidados').update({ whatsapp_enviado_em: new Date().toISOString() }).eq('id', id);
+    copiarTexto(mensagem(id)); // também na área de transferência, caso o WhatsApp não preencha sozinho
+    await marcarEnviada(id);
     setTimeout(listarConvites, 400); // depois que a aba do WhatsApp abrir
+  }));
+  area.querySelectorAll<HTMLButtonElement>('[data-copiar]').forEach((b) => b.addEventListener('click', async () => {
+    const id = b.closest('tr')!.dataset.id!;
+    const c = L.find((x) => x.id === id)!;
+    if (!(await copiarTexto(semNegrito(mensagem(id))))) { aviso('Não foi possível copiar. Tente de novo.', 'erro'); return; }
+    await marcarEnviada(id);
+    aviso(`Convite de ${primeiroNome(c.nome)} copiado. Cole na mensagem do LinkedIn (Ctrl + V).`);
+    listarConvites();
   }));
   area.querySelectorAll<HTMLInputElement>('[data-editar]').forEach((inp) => inp.addEventListener('change', async () => {
     const id = inp.closest('tr')!.dataset.id!;
@@ -555,7 +573,7 @@ async function listarConvites() {
   }));
 
   area.querySelector('#exportar-convites')?.addEventListener('click', () => {
-    const cab = ['Nome', 'E-mail', 'Situação do e-mail', 'Lembrete', 'Celular', 'WhatsApp enviado', 'Abriu o link', 'Inscrição', 'Link pessoal'];
+    const cab = ['Nome', 'E-mail', 'Situação do e-mail', 'Lembrete', 'Celular', 'Mensagem enviada (WhatsApp/LinkedIn)', 'Abriu o link', 'Inscrição', 'Link pessoal'];
     const linhas = L.map((c) => [c.nome, c.email, c.email ? ST_EMAIL[c.email_status]?.[0] : 'Sem e-mail', dataBr(c.lembrete_enviado_em), formatarTelefone(c.telefone),
       dataBr(c.whatsapp_enviado_em), dataBr(c.link_aberto_em), STATUS_TXT[inscricao(c)?.status ?? ''] ?? '', link(c)]);
     const csv = '﻿' + [cab, ...linhas].map((l) => l.map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');

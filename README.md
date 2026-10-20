@@ -138,10 +138,10 @@ Para eventos restritos: cada pessoa recebe um convite com **link pessoal** (`/ev
 **Uso**
 
 1. Painel → **Convites** → escolha o evento.
-2. **Importar:** copie do Excel as colunas Nome, E-mail e Celular (em qualquer ordem) e cole. Quem tiver só celular fica para o WhatsApp. Dá para copiar a lista de outro evento.
+2. **Importar:** copie do Excel as colunas Nome, E-mail e Celular (em qualquer ordem) e cole. E-mail e celular são opcionais: quem tiver só celular fica para o WhatsApp, e quem tiver só o nome recebe a mensagem copiada (LinkedIn). Dá para copiar a lista de outro evento.
 3. **Textos:** ajuste o assunto, o e-mail e a mensagem de WhatsApp (`{nome}`, `{titulo}`, `{tipo}`, `{data}`, `{local}`, `{resumo}`, `{palestrante}`, `{quem}`, `{link}`), salve e clique em **Enviar convite de teste para mim**.
 4. **Enviar convites por e-mail:** até 80 por dia (o plano gratuito do Resend permite 100 e-mails por dia, e a folga fica para as confirmações de inscrição). O restante fica pendente: clique de novo no dia seguinte. Para mudar o limite, crie o segredo `LIMITE_DIARIO_CONVITES`.
-5. **WhatsApp:** filtro *WhatsApp a enviar* → **Enviar** em cada linha abre o WhatsApp com a mensagem pronta; você confere e envia. O painel marca o envio.
+5. **WhatsApp e LinkedIn:** filtro *Mensagem a enviar*. **WhatsApp** abre a conversa com a mensagem pronta (e também a copia); **Copiar convite** copia a mensagem, sem os asteriscos de negrito, para colar no LinkedIn ou em outra rede. Nos dois casos o painel marca o envio.
 6. **E-mails inválidos** aparecem como *Inválido*: corrija o endereço na própria linha (ele volta para "não enviado") ou use o WhatsApp.
 7. **Lembrete:** um clique envia um lembrete único para quem recebeu o convite há pelo menos 1 dia e ainda não se inscreveu.
 8. Depois do evento, use **Apagar a lista deste evento** se não for reaproveitá-la (dados pessoais: guarde só o necessário).
