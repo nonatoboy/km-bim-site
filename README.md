@@ -133,7 +133,8 @@ Para eventos restritos: cada pessoa recebe um convite com **link pessoal** (`/ev
    - Endpoint URL: `https://SEU-PROJETO.supabase.co/functions/v1/convites` (a mesma Project URL do passo 1 da configuração, com `/functions/v1/convites` no fim)
    - Eventos: `email.delivered`, `email.bounced`, `email.complained`, `email.opened`, `email.clicked`, `email.failed`
    - Depois de criar, copie o **Signing Secret** (`whsec_…`) e adicione em Supabase → Edge Functions → Secrets como `RESEND_WEBHOOK_SECRET`.
-5. **Opcional, para saber quem abriu o e-mail:** Resend → **Domains → eventos.kmbim.com.br → Configuration → Open Tracking** ligado. (Não é preciso ligar o *Click Tracking*: o próprio site registra quem abriu o link pessoal.)
+5. **Ignorar robôs:** rode também [`supabase/migrations/20261020000000_convites_ignorar_robos.sql`](supabase/migrations/20261020000000_convites_ignorar_robos.sql). O LinkedIn e alguns filtros de e-mail abrem o link sozinhos logo após o envio; aberturas a menos de 10 segundos de um envio não contam como "abriu o link".
+6. **Opcional, para saber quem abriu o e-mail:** Resend → **Domains → eventos.kmbim.com.br → Configuration → Open Tracking** ligado. (Não é preciso ligar o *Click Tracking*: o próprio site registra quem abriu o link pessoal.)
 
 **Uso**
 
