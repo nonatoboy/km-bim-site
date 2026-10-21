@@ -64,7 +64,7 @@ const limite = e.inscricoes_ate ?? e.inicio;
           </label>
           <p class="erro" id="erro" role="alert" hidden></p>
           <button class="botao botao--cta" type="submit">Quero me inscrever</button>
-          <p class="nota" data-nota-form>Você vai receber um e-mail para confirmar a inscrição.</p>
+          <p class="nota nota--destaque" data-nota-form><strong>Importante:</strong> depois de enviar, abra o e-mail que vamos mandar e clique em <strong>Confirmar inscrição</strong>. Sem isso, a vaga não fica garantida.</p>
         </form>
 
         <div class="aviso aviso--ok" id="enviado" hidden tabindex="-1">
@@ -88,6 +88,28 @@ const limite = e.inscricoes_ate ?? e.inicio;
       </aside>
     </div>
   </article>
+
+  <dialog id="confirme" class="confirme" aria-labelledby="confirme-titulo">
+    <svg class="confirme__icone" viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="10" width="38" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><path d="M7 13l17 13 17-13" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>
+    <h2 id="confirme-titulo" data-titulo-confirme>Falta confirmar sua inscrição</h2>
+    <p>Enviamos agora um e-mail para <strong data-email></strong>.</p>
+    <ol class="confirme__passos">
+      <li>Abra esse e-mail, enviado por <strong>KM BIM Eventos</strong>.</li>
+      <li>Clique no botão <strong data-botao-email>Confirmar inscrição</strong>.</li>
+      <li data-passo-final>Pronto: você recebe o link de acesso e o convite para a agenda.</li>
+    </ol>
+    <p class="confirme__alerta">Sem essa confirmação, a vaga não fica garantida.</p>
+    <p class="nota">Não chegou em alguns minutos? Confira o spam, o lixo eletrônico ou a aba Promoções.</p>
+    <div class="confirme__acoes">
+      <a class="botao botao--cta" data-abrir-email target="_blank" rel="noopener" hidden>Abrir meu e-mail</a>
+      <button type="button" class="botao botao--primario" data-fechar>Entendi</button>
+    </div>
+    <div class="confirme__links">
+      <button type="button" class="link" data-reenviar>Reenviar o e-mail</button>
+      <button type="button" class="link" data-corrigir>Digitei o e-mail errado</button>
+    </div>
+    <p class="nota" data-reenvio-status role="status"></p>
+  </dialog>
 </Base>
 
 <script>
@@ -127,7 +149,7 @@ const limite = e.inscricoes_ate ?? e.inicio;
     document.querySelector('[data-form-titulo]')!.textContent = 'Lista de espera';
     document.querySelector<HTMLElement>('[data-aviso-espera]')!.hidden = false;
     document.querySelectorAll('[data-posicao]').forEach((el) => { el.textContent = `${posicao}ª`; });
-    document.querySelector('[data-nota-form]')!.textContent = 'Você vai receber um e-mail para confirmar a entrada na lista de espera.';
+    document.querySelector('[data-nota-form]')!.innerHTML = '<strong>Importante:</strong> depois de enviar, abra o e-mail que vamos mandar e clique no botão de confirmação. Sem isso, você não entra na lista de espera.';
     botao.textContent = textoBotao = 'Entrar na lista de espera';
   }
   let textoBotao = 'Quero me inscrever';
@@ -147,6 +169,54 @@ const limite = e.inscricoes_ate ?? e.inicio;
     });
   }
 
+  const inscrever = () => supabase().functions.invoke('inscrever', {
+    body: {
+      evento: form.dataset.evento, nome: valor('nome'), email: valor('email'), telefone: valor('telefone'),
+      empresa: valor('empresa'), site: valor('site'), convite, consentimento: (document.getElementById('consentimento') as HTMLInputElement).checked,
+    },
+  });
+
+  // Aviso em destaque depois da inscrição: muita gente não percebe que precisa confirmar pelo e-mail.
+  const dialogo = document.getElementById('confirme') as HTMLDialogElement;
+  const WEBMAIL: [RegExp, string][] = [
+    [/@(gmail|googlemail)\.com$/i, 'https://mail.google.com/mail/u/0/#search/from%3Aeventos.kmbim.com.br'],
+    [/@(outlook|hotmail|live|msn)\.[a-z.]+$/i, 'https://outlook.live.com/mail/'],
+    [/@(yahoo|ymail)\.[a-z.]+$/i, 'https://mail.yahoo.com/'],
+    [/@(uol|bol)\.com\.br$/i, 'https://email.uol.com.br/'],
+    [/@icloud\.com$/i, 'https://www.icloud.com/mail'],
+  ];
+  function avisarConfirmacao(espera: boolean) {
+    const email = valor('email');
+    dialogo.querySelectorAll('[data-email]').forEach((el) => { el.textContent = email; });
+    if (espera) {
+      dialogo.querySelector('[data-titulo-confirme]')!.textContent = 'Falta confirmar sua entrada na lista de espera';
+      dialogo.querySelector('[data-botao-email]')!.textContent = 'Confirmar e entrar na lista de espera';
+      dialogo.querySelector('[data-passo-final]')!.textContent = 'Pronto: você entra na lista e é avisado por e-mail se uma vaga for liberada.';
+    }
+    const abrir = dialogo.querySelector<HTMLAnchorElement>('[data-abrir-email]')!;
+    const webmail = WEBMAIL.find(([re]) => re.test(email));
+    abrir.hidden = !webmail;
+    if (webmail) abrir.href = webmail[1];
+    dialogo.querySelector('[data-reenvio-status]')!.textContent = '';
+    if (typeof dialogo.showModal === 'function') dialogo.showModal();
+  }
+  dialogo.querySelector('[data-fechar]')!.addEventListener('click', () => dialogo.close());
+  dialogo.querySelector('[data-corrigir]')!.addEventListener('click', () => {
+    dialogo.close();
+    document.getElementById('enviado')!.hidden = true;
+    form.hidden = false;
+    (document.getElementById('email') as HTMLInputElement).select();
+  });
+  dialogo.querySelector<HTMLButtonElement>('[data-reenviar]')!.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    const status = dialogo.querySelector('[data-reenvio-status]')!;
+    b.disabled = true;
+    status.textContent = 'Reenviando…';
+    const { data, error } = await inscrever();
+    status.textContent = data?.situacao === 'ja_confirmada' ? 'Sua inscrição já está confirmada. Confira o e-mail com o link de acesso.' : error ? 'Não foi possível reenviar agora. Tente de novo em alguns minutos.' : `E-mail reenviado para ${valor('email')}. Use o mais recente: o link do anterior deixa de valer.`;
+    setTimeout(() => { b.disabled = false; }, 30000); // evita vários reenvios seguidos
+  });
+
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     erro.hidden = true;
@@ -155,12 +225,7 @@ const limite = e.inscricoes_ate ?? e.inicio;
     if (!supabaseConfigurado) { erro.textContent = 'Inscrições indisponíveis no momento.'; erro.hidden = false; return; }
 
     botao.disabled = true; botao.textContent = 'Enviando…';
-    const { data, error } = await supabase().functions.invoke('inscrever', {
-      body: {
-        evento: form.dataset.evento, nome: valor('nome'), email: valor('email'), telefone: valor('telefone'),
-        empresa: valor('empresa'), site: valor('site'), convite, consentimento: (document.getElementById('consentimento') as HTMLInputElement).checked,
-      },
-    });
+    const { data, error } = await inscrever();
     botao.disabled = false; botao.textContent = textoBotao;
 
     if (error) {
@@ -180,6 +245,7 @@ const limite = e.inscricoes_ate ?? e.inicio;
     }
     document.querySelectorAll('#enviado [data-email]').forEach((el) => { el.textContent = valor('email'); });
     mostrar('enviado');
+    avisarConfirmacao(!!data?.lista_espera);
   });
 </script>
 
@@ -212,5 +278,18 @@ const limite = e.inscricoes_ate ?? e.inicio;
   .aviso { display: grid; gap: 10px; padding: 20px; background: #fff; border-radius: var(--raio); border-left: 4px solid var(--km-ambar); }
   .aviso--ok { border-left-color: var(--ok); }
   .aviso-espera { padding: 12px 14px; background: #FFF6E8; border-left: 4px solid var(--km-ambar); border-radius: 6px; font-size: 0.93rem; }
+  .nota--destaque { padding: 10px 12px; background: #FFF6E8; border-left: 4px solid var(--km-ambar); border-radius: 6px; color: var(--fg); }
+  .confirme { width: min(480px, calc(100vw - 32px)); padding: 28px 24px 20px; border: 0; border-top: 6px solid var(--km-ambar); border-radius: var(--raio); color: var(--fg); background: var(--bg); box-shadow: 0 20px 60px rgba(28, 42, 49, .35); }
+  .confirme::backdrop { background: rgba(28, 42, 49, .6); }
+  .confirme[open] { display: grid; gap: 12px; }
+  .confirme__icone { width: 48px; height: 48px; color: var(--km-petroleo); }
+  .confirme h2 { font-size: 1.4rem; }
+  .confirme strong[data-email] { overflow-wrap: anywhere; }
+  .confirme__passos { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+  .confirme__alerta { font-weight: 600; color: var(--erro); }
+  .confirme__acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .confirme__links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .confirme .link { background: none; border: 0; padding: 0; font: inherit; font-size: 0.9rem; color: var(--accent); text-decoration: underline; cursor: pointer; }
+  .confirme .link:disabled { color: var(--muted); cursor: default; }
   @media (max-width: 900px) { .detalhe { grid-template-columns: 1fr; } .lateral { position: static; } }
 </style>
