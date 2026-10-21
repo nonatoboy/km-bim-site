@@ -216,6 +216,12 @@ function paraLocal(iso?: string | null) {
 // ---------------------------------------------------------------- inscrições em eventos
 const STATUS_INSC: [string, string][] = [['pendente', 'Pendente'], ['confirmada', 'Confirmada'], ['lista_espera', 'Lista de espera'], ['cancelada', 'Cancelada'], ['aguardando_pagamento', 'Aguardando pagamento']];
 let eventoSelecionado = '';
+// E-mail que o botão "Reenviar" manda, conforme a situação da inscrição
+const REENVIO: Record<string, [string, string]> = {
+  pendente: ['Pedido de confirmação', 'O e-mail com o botão para confirmar a inscrição'],
+  confirmada: ['E-mail de confirmação', 'O e-mail de inscrição confirmada, com o link de acesso e o convite de agenda'],
+  lista_espera: ['Aviso de lista de espera', 'O e-mail com a posição na lista de espera'],
+};
 
 // Preenche vagas livres com a lista de espera (Edge Function "inscricao", que também envia os e-mails).
 async function promoverEspera(eventoId: string) {
@@ -244,13 +250,15 @@ async function listarInscricoes() {
       <label class="campo"><select id="sel-evento">${eventos.map((e) => `<option value="${e.id}" ${e.id === ev.id ? 'selected' : ''}>${esc(dataBr(e.inicio))} · ${esc(e.titulo)}</option>`).join('')}</select></label>
     </header>
     <p class="resumo-insc"><strong>${conta('confirmada')}</strong> confirmada(s)${ev.vagas ? ` de ${ev.vagas} vagas` : ''} · <strong>${conta('lista_espera')}</strong> na lista de espera · <strong>${conta('pendente')}</strong> pendente(s) · <strong>${conta('cancelada')}</strong> cancelada(s) · <strong>${presentes}</strong> presente(s)
+      ${conta('pendente') ? `<button type="button" class="botao botao--contorno" id="reenviar-pendentes">Reenviar pedido de confirmação aos ${conta('pendente')} pendente(s)</button>` : ''}
       <button type="button" class="botao botao--contorno" id="exportar">Exportar para Excel (CSV)</button></p>
     ${insc!.length ? `<div class="tabela-insc"><table>
-      <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Empresa</th><th>Inscrição</th><th>Status</th><th>Presente</th></tr></thead>
+      <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Empresa</th><th>Inscrição</th><th>Status</th><th>Presente</th><th>E-mail</th></tr></thead>
       <tbody>${insc!.map((i) => `<tr data-id="${i.id}">
         <td>${esc(i.nome)}</td><td>${esc(i.email)}</td><td>${esc(i.telefone)}</td><td>${esc(i.empresa)}</td><td>${esc(dataBr(i.criado_em))}</td>
         <td><select data-campo="status">${STATUS_INSC.map(([v, r]) => `<option value="${v}" ${v === i.status ? 'selected' : ''}>${r}${v === 'lista_espera' && posicao(i) ? ` (${posicao(i)}º)` : ''}</option>`).join('')}</select></td>
-        <td><input type="checkbox" data-campo="presente" ${i.presente ? 'checked' : ''} aria-label="Presente"></td></tr>`).join('')}
+        <td><input type="checkbox" data-campo="presente" ${i.presente ? 'checked' : ''} aria-label="Presente"></td>
+        <td>${REENVIO[i.status] ? `<button type="button" class="botao botao--contorno botao--mini" data-reenviar title="${esc(REENVIO[i.status][1])}">Reenviar</button>` : ''}</td></tr>`).join('')}
       </tbody></table></div>` : '<div class="vazio"><p>Nenhuma inscrição neste evento ainda.</p></div>'}`;
   $('#sel-evento').addEventListener('change', (e) => { eventoSelecionado = (e.target as HTMLSelectElement).value; listarInscricoes(); });
   area.querySelectorAll<HTMLElement>('[data-campo]').forEach((el) => el.addEventListener('change', async () => {
@@ -269,6 +277,33 @@ async function listarInscricoes() {
     if (campo === 'status') await promoverEspera(ev.id); // vaga liberada vai para o primeiro da fila
     listarInscricoes();
   }));
+  area.querySelectorAll<HTMLButtonElement>('[data-reenviar]').forEach((b) => b.addEventListener('click', async () => {
+    const i = insc!.find((x) => x.id === b.closest('tr')!.dataset.id)!;
+    if (!confirm(`Reenviar para ${i.email} ${REENVIO[i.status][1].toLowerCase()}?`)) return;
+    b.disabled = true;
+    const { data, error: e } = await db.functions.invoke('inscricao', { body: { acao: 'reenviar', inscricao_id: i.id } });
+    b.disabled = false;
+    if (e || !data?.ok) {
+      let msg = 'Não foi possível reenviar. Verifique a função "inscricao" no Supabase (README).';
+      try { const c = await (e as any)?.context?.json(); if (c?.erro) msg = c.erro; } catch { /* sem corpo */ }
+      aviso(msg, 'erro'); return;
+    }
+    aviso(`${REENVIO[i.status][0]} reenviado para ${data.para}.`);
+  }));
+  area.querySelector<HTMLButtonElement>('#reenviar-pendentes')?.addEventListener('click', async (ev0) => {
+    const pendentes = insc!.filter((i) => i.status === 'pendente');
+    if (!confirm(`Reenviar o pedido de confirmação para ${pendentes.length} inscrição(ões) pendente(s)?`)) return;
+    const b = ev0.currentTarget as HTMLButtonElement;
+    b.disabled = true;
+    let ok = 0;
+    for (const i of pendentes) {
+      b.textContent = `Enviando ${ok + 1} de ${pendentes.length}…`;
+      const { data } = await db.functions.invoke('inscricao', { body: { acao: 'reenviar', inscricao_id: i.id } });
+      if (data?.ok) ok++;
+    }
+    aviso(ok === pendentes.length ? `Pedido de confirmação reenviado para ${ok} pessoa(s).` : `Reenviado para ${ok} de ${pendentes.length}. Veja os logs da função "inscricao".`, ok === pendentes.length ? 'ok' : 'erro');
+    listarInscricoes();
+  });
   area.querySelector('#exportar')?.addEventListener('click', () => {
     const cab = ['Nome', 'E-mail', 'Telefone', 'Empresa', 'Status', 'Posição na espera', 'Presente', 'Inscrição', 'Confirmação'];
     const linhas = insc!.map((i) => [i.nome, i.email, i.telefone, i.empresa, STATUS_INSC.find(([v]) => v === i.status)?.[1] ?? i.status, posicao(i) ?? '', i.presente ? 'Sim' : 'Não', dataBr(i.criado_em), dataBr(i.confirmado_em)]);

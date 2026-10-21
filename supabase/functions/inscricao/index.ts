@@ -3,7 +3,7 @@
 // Sem vagas, a confirmação coloca a pessoa na lista de espera; quando uma vaga é liberada
 // (cancelamento, mudança no painel ou aumento de vagas), o primeiro da fila é confirmado e avisado.
 // Pública (chamada pela página /eventos/confirmar): desligue "Verify JWT" ao publicar.
-// A ação "promover" (painel) exige o login de um administrador, verificado aqui dentro.
+// As ações "promover" e "reenviar" (painel) exigem o login de um administrador, verificado aqui dentro.
 //
 // Segredos: RESEND_API_KEY, EMAIL_REMETENTE, EMAIL_RESPOSTA, SITE_URL (os mesmos da função "inscrever")
 //           EMAIL_AVISO  endereço que recebe o aviso de nova inscrição confirmada (ex.: contato@kmbim.com.br)
@@ -74,7 +74,8 @@ const par = (t: string) => `<p style="margin:0 0 12px;font-size:15px;line-height
 const nota = (t: string) => `<p style="margin:0 0 8px;font-size:13px;color:#56666D">${t}</p>`;
 
 // E-mail com o link de acesso e o convite de agenda, e aviso para a KM BIM.
-async function enviarConfirmacao(db: SupabaseClient, insc: Inscricao, ev: Evento, daEspera = false) {
+// avisar = false no reenvio pelo painel (a KM BIM já foi avisada na primeira vez). Retorna se o e-mail saiu.
+async function enviarConfirmacao(db: SupabaseClient, insc: Inscricao, ev: Evento, daEspera = false, avisar = true): Promise<boolean> {
   const cancelar = `${site()}/eventos/confirmar?token=${insc.token}&acao=cancelar`;
   const acesso = ev.link_acesso
     ? `<p style="margin:0 0 20px"><a href="${esc(ev.link_acesso)}" style="display:inline-block;background:#0B5563;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:6px">Acessar o evento</a></p>
@@ -98,10 +99,10 @@ async function enviarConfirmacao(db: SupabaseClient, insc: Inscricao, ev: Evento
     await enviarEmail(insc.email, `${daEspera ? 'Vaga liberada! ' : ''}Inscrição confirmada: ${ev.titulo}`,
       emailHtml(daEspera ? 'Vaga liberada: inscrição confirmada' : 'Inscrição confirmada', corpo),
       [{ filename: 'evento-km-bim.ics', content: convite(ev, insc.id) }]);
-  } catch (e) { console.error(e); }
+  } catch (e) { console.error(e); return false; }
 
   const aviso = Deno.env.get('EMAIL_AVISO');
-  if (aviso) {
+  if (aviso && avisar) {
     const { count } = await db.from('inscricoes_evento').select('id', { count: 'exact', head: true }).eq('evento_id', ev.id).eq('status', 'confirmada');
     const corpoAviso = `${par(`<strong>${esc(insc.nome)}</strong> ${daEspera ? 'saiu da lista de espera e foi confirmado(a) em' : 'confirmou presença em'} <strong>${esc(ev.titulo)}</strong>.`)}
       <p style="margin:0 0 12px;font-size:14px;line-height:1.6">${esc(insc.email)} · ${esc(insc.telefone)}${insc.empresa ? ` · ${esc(insc.empresa)}` : ''}</p>
@@ -111,10 +112,27 @@ async function enviarConfirmacao(db: SupabaseClient, insc: Inscricao, ev: Evento
         emailHtml(daEspera ? 'Inscrição promovida da lista de espera' : 'Nova inscrição confirmada', corpoAviso));
     } catch (e) { console.error(e); }
   }
+  return true;
+}
+
+// Pedido de confirmação (inscrição pendente), reenviado pelo painel. Mesmo texto da função "inscrever", mesmo link.
+async function enviarPedidoConfirmacao(insc: Inscricao, ev: Evento): Promise<boolean> {
+  const link = `${site()}/eventos/confirmar?token=${insc.token}`;
+  const corpo = `
+    ${par(`Olá, ${esc(insc.nome.split(' ')[0])}!`)}
+    ${par(`Recebemos sua inscrição em <strong>${esc(ev.titulo)}</strong>, ${esc(dataHora(ev.inicio))}.`)}
+    ${par('Para garantir sua vaga, confirme a inscrição:')}
+    <p style="margin:8px 0 24px"><a href="${link}" style="display:inline-block;background:#F2A33A;color:#1C2A31;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:6px">Confirmar inscrição</a></p>
+    ${nota('Depois de confirmar, você recebe o link de acesso e o convite para a agenda.')}
+    ${nota('Se não foi você, ignore esta mensagem.')}`;
+  try {
+    await enviarEmail(insc.email, `Confirme sua inscrição: ${ev.titulo}`, emailHtml('Confirme sua inscrição', corpo));
+    return true;
+  } catch (e) { console.error(e); return false; }
 }
 
 // E-mail de quem entrou na lista de espera.
-async function enviarListaEspera(insc: Inscricao, ev: Evento, posicao: number) {
+async function enviarListaEspera(insc: Inscricao, ev: Evento, posicao: number): Promise<boolean> {
   const cancelar = `${site()}/eventos/confirmar?token=${insc.token}&acao=cancelar`;
   const corpo = `
     ${par(`Olá, ${esc(insc.nome.split(' ')[0])}! As vagas de <strong>${esc(ev.titulo)}</strong> (${esc(dataHora(ev.inicio))}) estão preenchidas, e você está na <strong>lista de espera</strong>.`)}
@@ -123,7 +141,8 @@ async function enviarListaEspera(insc: Inscricao, ev: Evento, posicao: number) {
     ${nota(`Não tem mais interesse? <a href="${cancelar}" style="color:#0B5563">Saia da lista de espera</a>.`)}`;
   try {
     await enviarEmail(insc.email, `Você está na lista de espera (${posicao}º): ${ev.titulo}`, emailHtml('Você está na lista de espera', corpo));
-  } catch (e) { console.error(e); }
+    return true;
+  } catch (e) { console.error(e); return false; }
 }
 
 // Preenche as vagas livres com a lista de espera e avisa cada pessoa confirmada. Retorna os ids promovidos.
@@ -145,14 +164,39 @@ Deno.serve(async (req) => {
   try { d = await req.json(); } catch { return json({ resultado: 'invalido' }, 400); }
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  // Painel: preenche vagas livres com a lista de espera (após cancelar alguém ou aumentar as vagas).
-  if (d.acao === 'promover') {
+  const ehAdmin = async () => {
     const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
     const { data: usuario } = await db.auth.getUser(jwt);
     const { data: admin } = usuario?.user
       ? await db.from('administradores').select('user_id').eq('user_id', usuario.user.id).maybeSingle()
       : { data: null };
-    if (!admin) return json({ erro: 'Acesso restrito ao administrador.' }, 403);
+    return !!admin;
+  };
+
+  // Painel: reenvia o e-mail da situação atual da inscrição (pedido de confirmação, confirmação com o link
+  // de acesso ou aviso de lista de espera).
+  if (d.acao === 'reenviar') {
+    if (!(await ehAdmin())) return json({ erro: 'Acesso restrito ao administrador.' }, 403);
+    const { data: insc } = await db.from('inscricoes_evento')
+      .select(`id, nome, email, telefone, empresa, status, token, eventos(${CAMPOS_EVENTO})`)
+      .eq('id', String(d.inscricao_id ?? '')).maybeSingle();
+    if (!insc) return json({ erro: 'Inscrição não encontrada.' }, 404);
+    const ev = insc.eventos as unknown as Evento;
+    const pessoa = insc as unknown as Inscricao;
+    let ok = false;
+    if (insc.status === 'confirmada') ok = await enviarConfirmacao(db, pessoa, ev, false, false);
+    else if (insc.status === 'pendente') ok = await enviarPedidoConfirmacao(pessoa, ev);
+    else if (insc.status === 'lista_espera') {
+      const { data: posicao } = await db.rpc('posicao_espera', { p_inscricao: insc.id });
+      ok = await enviarListaEspera(pessoa, ev, posicao ?? 1);
+    } else return json({ erro: 'Inscrição cancelada: não há e-mail para reenviar.' }, 409);
+    if (!ok) return json({ erro: 'O Resend recusou o envio. Veja os logs da função "inscricao".' }, 502);
+    return json({ ok: true, tipo: insc.status, para: insc.email });
+  }
+
+  // Painel: preenche vagas livres com a lista de espera (após cancelar alguém ou aumentar as vagas).
+  if (d.acao === 'promover') {
+    if (!(await ehAdmin())) return json({ erro: 'Acesso restrito ao administrador.' }, 403);
     const { data: ev } = await db.from('eventos').select(CAMPOS_EVENTO).eq('id', String(d.evento_id ?? '')).maybeSingle();
     if (!ev) return json({ erro: 'Evento não encontrado.' }, 404);
     const promovidos = await promover(db, ev as Evento);
