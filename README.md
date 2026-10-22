@@ -148,6 +148,30 @@ Para eventos restritos: cada pessoa recebe um convite com **link pessoal** (`/ev
 7. **Lembrete:** um clique envia um lembrete único para quem recebeu o convite há pelo menos 1 dia e ainda não se inscreveu.
 8. Depois do evento, use **Apagar a lista deste evento** se não for reaproveitá-la (dados pessoais: guarde só o necessário).
 
+## Enquetes ao vivo
+
+Enquetes rápidas em palestras, aulas e eventos, no estilo Mentimeter. Os participantes abrem **kmbim.com.br/enquete**, digitam o código de 4 dígitos (ou leem o QR code) e respondem pelo celular, sem cadastro. O palestrante conduz pelo painel, na aba **Enquetes**, e a projeção abre por um link secreto, sem login.
+
+- **Tipos:** múltipla escolha (uma alternativa), várias alternativas (com limite opcional) ou nuvem de palavras (até N palavras por pessoa, com no máximo 25 caracteres cada). O tipo vale para todas as perguntas da enquete.
+- **Anônima:** o celular guarda um identificador aleatório só para evitar voto duplicado. Quem limpar os dados do navegador ou usar uma aba anônima consegue votar de novo; para enquetes rápidas isso é aceitável.
+- O participante **pode mudar a resposta** enquanto a pergunta estiver aberta. O resultado aparece no celular só se o palestrante liberar.
+- A enquete pode ser ligada a um evento (opcional). Para outra turma, use **Duplicar**: a cópia ganha código e link de projeção novos.
+
+**Configuração (uma vez)**
+
+1. **Banco:** no SQL Editor, rode [`supabase/migrations/20261022000000_enquetes.sql`](supabase/migrations/20261022000000_enquetes.sql).
+2. **Tempo real:** em Supabase → **Realtime → Settings**, confira se **Allow public access** está ligado (é o padrão). Os celulares escutam o canal público `enquete:{código}`, que só transmite o aviso "algo mudou", sem dados. Se estiver desligado, a enquete funciona do mesmo jeito, só que os celulares demoram até 4 s para ver cada comando.
+
+**Uso**
+
+1. Painel → **Enquetes** → **Nova enquete**: título, tipo e, se quiser, o evento. Depois, **Adicionar pergunta** para cada pergunta.
+2. Na apresentação: **Abrir projeção** no computador ligado ao projetor (tecla F para tela cheia) e **Abrir entrada** para aceitar participantes. A projeção mostra o QR code e o código enquanto nenhuma pergunta está na tela.
+3. **Mostrar a primeira pergunta** / **Próxima pergunta**: a pergunta aparece nos celulares e na projeção, com as respostas chegando ao vivo. A pergunta anterior é encerrada automaticamente.
+4. Na pergunta da tela: **Encerrar respostas** (ou **Reabrir**), **Mostrar resultado nos celulares** e, na nuvem, clique numa palavra para ocultá-la (moderação).
+5. No fim: **Tirar pergunta da tela**, **Fechar entrada** e **Exportar resultados (CSV)**. **Reiniciar** apaga as respostas e volta todas as perguntas para "não mostrada".
+
+**Limites do plano gratuito do Supabase:** cerca de 200 conexões simultâneas em tempo real e 100 mensagens por segundo. Para não chegar perto disso, cada comando do palestrante gera um único aviso. A projeção e o painel consultam a contagem a cada 1,5 a 2 segundos, sem usar o tempo real. Os celulares também consultam sozinhos (a cada 20 s, ou a cada 4 s se o tempo real cair; a cada 5 s com o resultado liberado). Assim a enquete continua funcionando mesmo sem o tempo real, só com um pouco mais de atraso.
+
 ## Desenvolvimento local
 
 ```bash
@@ -170,6 +194,8 @@ src/components/             card de solução, barra de seleção, logo
 src/lib/conteudo.ts         leitura do Supabase no build
 src/scripts/carrinho.ts     seleção de soluções para o orçamento
 src/scripts/admin.ts        painel administrativo
+src/scripts/enquete.ts      enquete no celular (/enquete); projecao.ts: projeção (/enquete/projecao)
+src/lib/enquetes.ts         enquetes: tempo real, QR code, barras e nuvem de palavras
 supabase/migrations/        estrutura do banco e regras de segurança
 supabase/functions/         Edge Function "publicar"
 .github/workflows/          build e envio para a Hostinger

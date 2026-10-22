@@ -1,0 +1,34 @@
+/* Enquetes ao vivo: resultados (barras e nuvem) compartilhados pelo celular, pela projeção e pelo painel.
+   Cada tela define as variáveis --res-* para o seu fundo (claro ou escuro). */
+:root {
+  --res-texto: var(--fg);
+  --res-suave: var(--muted);
+  --res-trilho: var(--bg-alt);
+  --res-barra: var(--km-petroleo);
+  --res-minha: var(--km-ambar);
+  --res-tom-0: var(--km-petroleo);
+  --res-tom-1: var(--km-ciano);
+  --res-tom-2: #8A5206;
+  --res-tom-3: var(--km-grafite);
+}
+
+.res-barras { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9em; color: var(--res-texto); }
+.res-barras li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.25em 1em; align-items: baseline; }
+.res-barras__rotulo { font-weight: 600; overflow-wrap: anywhere; }
+.res-barras__valor { font: 600 1em var(--f-mono); white-space: nowrap; }
+.res-barras__valor small { font-size: 0.75em; color: var(--res-suave); }
+.res-barras__trilho { grid-column: 1 / -1; height: 0.75em; border-radius: 999px; background: var(--res-trilho); overflow: hidden; }
+.res-barras__trilho span { display: block; height: 100%; border-radius: inherit; background: var(--res-barra); transition: width .6s ease; }
+.res-barras li[data-minha] .res-barras__trilho span { background: var(--res-minha); }
+
+.res-nuvem { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.15em 0.6em; line-height: 1.1; text-align: center; }
+.res-nuvem > * { font-family: var(--f-display); font-weight: 700; overflow-wrap: anywhere; }
+.res-nuvem [data-tom="0"] { color: var(--res-tom-0); }
+.res-nuvem [data-tom="1"] { color: var(--res-tom-1); }
+.res-nuvem [data-tom="2"] { color: var(--res-tom-2); }
+.res-nuvem [data-tom="3"] { color: var(--res-tom-3); }
+.res-nuvem button { border: 1px dashed transparent; border-radius: 6px; background: none; padding: 0 0.2em; cursor: pointer; line-height: inherit; }
+.res-nuvem button:hover { border-color: currentColor; }
+.res-nuvem button[data-oculta] { color: var(--res-suave); text-decoration: line-through; opacity: .55; }
+
+.res-vazio { color: var(--res-suave); text-align: center; }

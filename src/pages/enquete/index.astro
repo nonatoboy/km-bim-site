@@ -1,0 +1,84 @@
+---
+// Enquete ao vivo, pelo celular: /enquete (digita o código) ou /enquete?c=1234 (link direto e QR code).
+// Página estática; o estado vem do Supabase no navegador.
+import '@fontsource/saira/700.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '../../styles/global.css';
+import '../../styles/enquete.css';
+---
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#1C2A31" />
+  <title>Enquete · KM BIM</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+</head>
+<body class="enquete">
+  <header class="enquete__barra">
+    <img src="/img/km-bim-horizontal-negativo.svg" alt="KM BIM" height="28" style="height:28px;width:auto" />
+    <span>Enquete</span>
+  </header>
+
+  <main class="enquete__corpo">
+    <form id="form-codigo" class="cartao" hidden novalidate>
+      <h1>Participe da enquete</h1>
+      <label class="enquete__campo">
+        <span>Código informado pelo palestrante</span>
+        <input id="codigo" inputmode="numeric" autocomplete="off" pattern="[0-9]{4}" maxlength="4" placeholder="0000" aria-describedby="erro-codigo" />
+      </label>
+      <p id="erro-codigo" class="enquete__erro" role="alert"></p>
+      <button class="botao botao--primario" type="submit">Entrar</button>
+    </form>
+
+    <div id="tela" class="cartao" hidden aria-live="polite"></div>
+    <p id="conexao" class="enquete__conexao" role="status" hidden>Sem conexão. Tentando novamente…</p>
+    <p class="enquete__sair"><button type="button" id="sair" class="enquete__link" hidden>Entrar com outro código</button></p>
+  </main>
+
+  <script>
+    import { iniciarEnquete } from '../../scripts/enquete';
+    import { supabaseConfigurado } from '../../lib/supabase';
+    if (supabaseConfigurado) iniciarEnquete();
+    else document.querySelector('.enquete__corpo')!.innerHTML = '<p class="cartao">Enquetes indisponíveis: Supabase não configurado.</p>';
+  </script>
+</body>
+</html>
+
+<style is:global>
+  body.enquete { background: var(--bg-alt); min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  .enquete__barra { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--km-grafite); }
+  .enquete__barra span { font: 500 0.78rem var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--km-ambar); }
+  .enquete__corpo { width: 100%; max-width: 560px; margin: 0 auto; padding: 20px 16px 32px; display: grid; gap: 12px; align-content: start; flex: 1; }
+  .enquete .cartao { display: grid; gap: 16px; padding: 24px 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); }
+  .enquete h1 { font-size: clamp(1.5rem, 6vw, 2rem); font-weight: 700; }
+  .enquete h2 { font-size: 1.2rem; }
+  .enquete__campo { display: grid; gap: 8px; font-weight: 600; }
+  .enquete__campo input#codigo { font: 600 2.4rem var(--f-mono); letter-spacing: .35em; text-align: center; padding: 10px; }
+  .enquete input:not([type="radio"]):not([type="checkbox"]) { width: 100%; min-height: 52px; padding: 10px 14px; border: 1px solid #B8C6CA; border-radius: var(--raio); font: 400 1.1rem var(--f-body); color: var(--fg); background: #fff; }
+  .enquete .botao { width: 100%; min-height: 54px; font-size: 1.08rem; }
+  .enquete__erro { color: var(--erro); font-weight: 600; min-height: 1.4em; margin-top: -8px; }
+  .enquete__erro:empty { display: none; }
+  .enquete__conexao { text-align: center; color: var(--erro); font-size: 0.92rem; }
+  .enquete__sair { text-align: center; }
+  .enquete__link { background: none; border: 0; padding: 8px; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
+  .enquete .rotulo { display: block; }
+  .enquete #form-resposta { display: grid; gap: 16px; }
+  .enquete .opcoes { display: grid; gap: 10px; border: 0; margin: 0; padding: 0; }
+  .enquete .opcao { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; min-height: 56px; padding: 12px 14px; border: 2px solid var(--line); border-radius: var(--raio); font-weight: 600; cursor: pointer; }
+  .enquete .opcao:has(input:checked) { border-color: var(--accent); background: #E1EEF0; }
+  .enquete .opcao input { width: 22px; height: 22px; margin: 0; accent-color: var(--km-petroleo); }
+  .enquete .dica { color: var(--muted); font-size: 0.92rem; }
+  .enquete .palavras { display: grid; gap: 10px; }
+  .enquete .enviada { padding: 12px 14px; border-radius: var(--raio); background: #E3F2EA; color: var(--ok); font-weight: 600; }
+  .enquete .resultado { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .enquete .resultado .res-nuvem { font-size: 1rem; }
+  .enquete .aguarde { display: flex; gap: 10px; align-items: center; color: var(--muted); }
+  .enquete .aguarde::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--km-ciano); animation: pulsar 1.4s ease-in-out infinite; }
+  @keyframes pulsar { 50% { opacity: .25; transform: scale(.7); } }
+</style>
