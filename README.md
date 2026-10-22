@@ -159,7 +159,7 @@ Enquetes rápidas em palestras, aulas e eventos, no estilo Mentimeter. Os partic
 
 **Configuração (uma vez)**
 
-1. **Banco:** no SQL Editor, rode [`supabase/migrations/20261022000000_enquetes.sql`](supabase/migrations/20261022000000_enquetes.sql).
+1. **Banco:** no SQL Editor, rode [`supabase/migrations/20261022000000_enquetes.sql`](supabase/migrations/20261022000000_enquetes.sql) inteira (cole tudo e não selecione trechos antes de clicar em Run). Se o painel mostrar "new row violates row-level security policy for table enquetes", a migration ficou incompleta: rode [`supabase/migrations/20261023000000_enquetes_reparo.sql`](supabase/migrations/20261023000000_enquetes_reparo.sql), que cria só o que falta e termina com uma conferência (deve mostrar 1, 1, 1 e 10).
 2. **Tempo real:** em Supabase → **Realtime → Settings**, confira se **Allow public access** está ligado (é o padrão). Os celulares escutam o canal público `enquete:{código}`, que só transmite o aviso "algo mudou", sem dados. Se estiver desligado, a enquete funciona do mesmo jeito, só que os celulares demoram até 4 s para ver cada comando.
 
 **Uso**
