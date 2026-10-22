@@ -639,18 +639,21 @@ let timerEnquete: ReturnType<typeof setInterval> | undefined;
 
 async function listarEnquetes() {
   const area = $('#area');
-  const [{ data, error }, { data: eventos }] = await Promise.all([
-    db.from('enquetes').select('id, titulo, tipo, codigo, aberta, evento_id, perguntas_enquete!perguntas_enquete_enquete_id_fkey(count)').order('criado_em', { ascending: false }),
+  // Perguntas contadas à parte, sem embutir a relação (enquetes tem duas FKs com perguntas_enquete)
+  const [{ data, error }, { data: eventos }, { data: perguntas }] = await Promise.all([
+    db.from('enquetes').select('id, titulo, tipo, codigo, aberta, evento_id').order('criado_em', { ascending: false }),
     db.from('eventos').select('id, titulo, inicio').order('inicio', { ascending: false }),
+    db.from('perguntas_enquete').select('enquete_id'),
   ]);
-  if (error) { area.innerHTML = `<p class="erro">${esc(error.message)}. Rode a migration de enquetes no Supabase (README, seção Enquetes).</p>`; return; }
+  if (error) { area.innerHTML = `<p class="erro">${esc(error.message)}. Confira se a migration de enquetes foi aplicada no Supabase (README, seção Enquetes).</p>`; return; }
+  const nPerguntas = (id: string) => perguntas?.filter((p) => p.enquete_id === id).length ?? 0;
   const nomeEvento = (id: string) => eventos?.find((e) => e.id === id)?.titulo ?? '';
   area.innerHTML = `
     <header class="area__cabeca"><h2>Enquetes</h2><button type="button" class="botao botao--cta" id="nova-enquete">Nova enquete</button></header>
     ${data.length ? `<ul class="itens">${data.map((e: any) => `
       <li><button type="button" data-enquete="${e.id}">
         <strong>${esc(e.titulo)}</strong>
-        <span>Código ${esc(e.codigo)} · ${esc(rotuloTipo(e.tipo))} · ${e.perguntas_enquete?.[0]?.count ?? 0} pergunta(s)${e.evento_id ? ` · ${esc(nomeEvento(e.evento_id))}` : ''} · ${e.aberta ? '<em>entrada aberta</em>' : 'entrada fechada'}</span>
+        <span>Código ${esc(e.codigo)} · ${esc(rotuloTipo(e.tipo))} · ${nPerguntas(e.id)} pergunta(s)${e.evento_id ? ` · ${esc(nomeEvento(e.evento_id))}` : ''} · ${e.aberta ? '<em>entrada aberta</em>' : 'entrada fechada'}</span>
       </button></li>`).join('')}</ul>`
     : '<div class="vazio"><h2>Nenhuma enquete</h2><p>Crie uma enquete e cadastre as perguntas. Na apresentação, abra a entrada e mostre as perguntas uma a uma.</p></div>'}
     <div id="editor"></div>`;
@@ -752,12 +755,15 @@ async function conduzirEnquete(id: string) {
   const area = $('#area');
   const [{ data: e, error }, { data: perguntas }, { data: eventos }] = await Promise.all([
     db.from('enquetes').select('*').eq('id', id).single(),
-    db.from('perguntas_enquete').select('*, respostas_enquete(count)').eq('enquete_id', id).order('ordem').order('criado_em'),
+    db.from('perguntas_enquete').select('*').eq('enquete_id', id).order('ordem').order('criado_em'),
     db.from('eventos').select('id, titulo, inicio').order('inicio', { ascending: false }),
   ]);
   if (error) { aviso(error.message, 'erro'); listarEnquetes(); return; }
   const P: any[] = perguntas ?? [];
-  const qtd = (p: any) => p.respostas_enquete?.[0]?.count ?? 0;
+  // Respostas por pergunta: só a contagem (head), sem trazer as linhas
+  const contagens = await Promise.all(P.map((p) => db.from('respostas_enquete').select('id', { count: 'exact', head: true }).eq('pergunta_id', p.id)));
+  const total = new Map(P.map((p, i) => [p.id, contagens[i].count ?? 0]));
+  const qtd = (p: any) => total.get(p.id) ?? 0;
   const comRespostas = P.some((p) => qtd(p) > 0);
   const atual = P.find((p) => p.id === e.pergunta_atual_id);
   const proxima = P[atual ? P.indexOf(atual) + 1 : 0];
