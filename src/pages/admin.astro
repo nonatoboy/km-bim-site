@@ -5,6 +5,7 @@ import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/600.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '../styles/global.css';
+import '../styles/enquete.css';
 ---
 <!doctype html>
 <html lang="pt-BR">
@@ -166,4 +167,27 @@ import '../styles/global.css';
   .admin .tabela-convites [data-remover] { font-size: 1.3rem; text-decoration: none; }
   .admin #sel-evento-convite { min-width: 280px; }
   .admin .fora-lista { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.88rem; }
+  .admin .enq-titulo { display: grid; gap: 4px; }
+  .admin .enq-titulo p { color: var(--muted); }
+  .admin .enq-acesso { grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 18px; }
+  .admin .enq-acesso__qr svg { display: block; width: 100%; height: auto; }
+  .admin .enq-acesso__info { display: grid; gap: 12px; min-width: 0; }
+  .admin .enq-acesso__info small { overflow-wrap: anywhere; }
+  .admin .enq-acesso__codigo { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: var(--fg) !important; font-size: 1rem !important; }
+  .admin .enq-acesso__codigo strong { font: 600 2rem/1 var(--f-mono); letter-spacing: .1em; color: var(--accent); }
+  @media (max-width: 600px) { .admin .enq-acesso { grid-template-columns: 1fr; } .admin .enq-acesso__qr { width: 160px; } }
+  .admin .enq-perguntas { display: grid; gap: 10px; }
+  .admin .enq-perguntas h3 { font-size: 1.2rem; }
+  .admin .enq-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .admin .enq-pergunta { display: grid; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .admin .enq-pergunta[data-atual] { border: 2px solid var(--accent); box-shadow: 0 4px 16px rgba(11, 85, 99, .12); }
+  .admin .enq-pergunta small { color: var(--muted); font-size: 0.85rem; }
+  .admin .enq-pergunta__cabeca { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; }
+  .admin .enq-pergunta__num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-alt); font: 600 0.85rem var(--f-mono); color: var(--accent); }
+  .admin .enq-pergunta__qtd { color: var(--muted); font: 500 0.82rem var(--f-mono); white-space: nowrap; }
+  @media (max-width: 700px) { .admin .enq-pergunta__cabeca { grid-template-columns: auto minmax(0, 1fr); } }
+  .admin .enq-pergunta__acoes { gap: 6px; }
+  .admin .enq-ao-vivo { padding: 14px 16px; background: #F7FAFA; border-radius: 6px; }
+  .admin .enq-ao-vivo .res-nuvem { font-size: 0.95rem; }
+  .admin .carregando { color: var(--muted); }
 </style>

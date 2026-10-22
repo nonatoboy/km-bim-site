@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import {
   ASSUNTO_PADRAO, TEXTO_EMAIL_PADRAO, TEXTO_WHATSAPP_PADRAO, TIPO_COM_ARTIGO, dataConvite, nomeCurto, chaveNome, copiarTexto, formatarTelefone, lerLista, mesmoTelefone, semNegrito, normalizarTelefone, preencher, primeiroNome, telefoneValido,
 } from '../lib/convites';
+import { TIPOS_ENQUETE, htmlBarras, htmlNuvem, linkParticipante, qrCode, respondentes, type Resultado, type TipoEnquete } from '../lib/enquetes';
 
 type TipoCampo = 'texto' | 'textoLongo' | 'lista' | 'opcoes' | 'booleano' | 'numero' | 'imagem' | 'pdf' | 'url' | 'dataHora';
 interface Campo { nome: string; rotulo: string; tipo: TipoCampo; opcoes?: [string, string][]; obrigatorio?: boolean; ajuda?: string }
@@ -183,7 +184,7 @@ async function abrirPainel() {
   const { data: cats } = await db.from('categorias').select('slug, nome').order('ordem');
   categoriasOpcoes.splice(0, categoriasOpcoes.length, ...(cats ?? []).map((c) => [c.slug, c.nome] as [string, string]));
 
-  const abas: [string, string][] = [['pedidos', 'Pedidos'], ['inscricoes', 'Inscrições'], ['convites', 'Convites'], ...TABELAS.map((t) => [t.nome, t.rotulo] as [string, string]), ['configuracoes', 'Textos gerais']];
+  const abas: [string, string][] = [['pedidos', 'Pedidos'], ['inscricoes', 'Inscrições'], ['convites', 'Convites'], ['enquetes', 'Enquetes'], ...TABELAS.map((t) => [t.nome, t.rotulo] as [string, string]), ['configuracoes', 'Textos gerais']];
   const nav = $('#abas');
   nav.innerHTML = abas.map(([id, r]) => `<button type="button" data-aba="${id}">${esc(r)}</button>`).join('');
   nav.addEventListener('click', (e) => {
@@ -195,10 +196,12 @@ async function abrirPainel() {
 
 function abrirAba(id: string) {
   abaAtual = id;
+  clearInterval(timerEnquete);
   document.querySelectorAll<HTMLButtonElement>('[data-aba]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.aba === id)));
   if (id === 'pedidos') return listarPedidos();
   if (id === 'inscricoes') return listarInscricoes();
   if (id === 'convites') return listarConvites();
+  if (id === 'enquetes') return listarEnquetes();
   if (id === 'configuracoes') return listarConfiguracoes();
   listarTabela(TABELAS.find((t) => t.nome === id)!);
 }
@@ -623,6 +626,325 @@ async function listarConvites() {
     const { error: e } = await db.from('convidados').delete().eq('evento_id', ev.id);
     if (e) aviso(e.message, 'erro'); else { aviso('Lista apagada.'); listarConvites(); }
   });
+}
+
+// ---------------------------------------------------------------- enquetes ao vivo
+// Lista, edição e condução das enquetes. Os comandos ao vivo passam pela função controlar_enquete,
+// que avisa os celulares pelo tempo real; a contagem da pergunta na tela é consultada a cada 2 s.
+const ESTADO_PERGUNTA: Record<string, [string, string]> = {
+  aguardando: ['Não mostrada', ''], aberta: ['Recebendo respostas', 'ok'], encerrada: ['Encerrada', 'info'],
+};
+const rotuloTipo = (t: string) => TIPOS_ENQUETE.find(([v]) => v === t)?.[1] ?? t;
+let timerEnquete: ReturnType<typeof setInterval> | undefined;
+
+async function listarEnquetes() {
+  const area = $('#area');
+  const [{ data, error }, { data: eventos }] = await Promise.all([
+    db.from('enquetes').select('id, titulo, tipo, codigo, aberta, evento_id, perguntas_enquete!perguntas_enquete_enquete_id_fkey(count)').order('criado_em', { ascending: false }),
+    db.from('eventos').select('id, titulo, inicio').order('inicio', { ascending: false }),
+  ]);
+  if (error) { area.innerHTML = `<p class="erro">${esc(error.message)}. Rode a migration de enquetes no Supabase (README, seção Enquetes).</p>`; return; }
+  const nomeEvento = (id: string) => eventos?.find((e) => e.id === id)?.titulo ?? '';
+  area.innerHTML = `
+    <header class="area__cabeca"><h2>Enquetes</h2><button type="button" class="botao botao--cta" id="nova-enquete">Nova enquete</button></header>
+    ${data.length ? `<ul class="itens">${data.map((e: any) => `
+      <li><button type="button" data-enquete="${e.id}">
+        <strong>${esc(e.titulo)}</strong>
+        <span>Código ${esc(e.codigo)} · ${esc(rotuloTipo(e.tipo))} · ${e.perguntas_enquete?.[0]?.count ?? 0} pergunta(s)${e.evento_id ? ` · ${esc(nomeEvento(e.evento_id))}` : ''} · ${e.aberta ? '<em>entrada aberta</em>' : 'entrada fechada'}</span>
+      </button></li>`).join('')}</ul>`
+    : '<div class="vazio"><h2>Nenhuma enquete</h2><p>Crie uma enquete e cadastre as perguntas. Na apresentação, abra a entrada e mostre as perguntas uma a uma.</p></div>'}
+    <div id="editor"></div>`;
+  $('#nova-enquete').addEventListener('click', () => editarEnquete(null, eventos ?? []));
+  area.querySelectorAll<HTMLButtonElement>('[data-enquete]').forEach((b) => b.addEventListener('click', () => conduzirEnquete(b.dataset.enquete!)));
+}
+
+/** Janela de edição com os campos dados; devolve o formulário para o chamador tratar o envio. */
+function janela(titulo: string, campos: string) {
+  const ed = $('#editor');
+  ed.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-titulo">
+      <form class="editor">
+        <header class="editor__cabeca"><h2 id="editor-titulo">${esc(titulo)}</h2><button type="button" class="fechar" aria-label="Fechar">×</button></header>
+        ${campos}
+        <div class="editor__acoes"><button class="botao botao--primario" type="submit">Salvar</button></div>
+      </form>
+    </div>`;
+  const fechar = () => { ed.innerHTML = ''; };
+  $('.fechar', ed).addEventListener('click', fechar);
+  ed.querySelector('.modal')!.addEventListener('click', (e) => { if (e.target === e.currentTarget) fechar(); });
+  const form = $<HTMLFormElement>('form', ed);
+  (form.querySelector('input, textarea, select') as HTMLElement | null)?.focus();
+  return form;
+}
+
+function editarEnquete(linha: any | null, eventos: any[], comRespostas = false) {
+  const v = linha ?? { tipo: 'escolha_unica', max_palavras: 3 };
+  const form = janela(linha ? 'Editar enquete' : 'Nova enquete', [
+    campoHtml({ nome: 'titulo', rotulo: 'Título', tipo: 'texto', obrigatorio: true, ajuda: 'Aparece no celular dos participantes e na projeção.' }, v.titulo),
+    campoHtml({ nome: 'tipo', rotulo: 'Tipo das perguntas', tipo: 'opcoes', opcoes: TIPOS_ENQUETE,
+      ajuda: comRespostas ? 'Já há respostas: o tipo não pode mudar. Reinicie a enquete para apagar as respostas.' : 'Vale para todas as perguntas desta enquete.' }, v.tipo),
+    campoHtml({ nome: 'max_escolhas', rotulo: 'Máximo de alternativas por pessoa', tipo: 'numero', ajuda: 'Vazio = sem limite.' }, v.max_escolhas),
+    campoHtml({ nome: 'max_palavras', rotulo: 'Palavras por pessoa', tipo: 'numero', ajuda: 'De 1 a 10. Cada palavra ou expressão tem até 25 caracteres.' }, v.max_palavras),
+    campoHtml({ nome: 'evento_id', rotulo: 'Evento (opcional)', tipo: 'opcoes',
+      opcoes: [['', 'Nenhum'], ...eventos.map((e) => [e.id, `${dataBr(e.inicio)} · ${e.titulo}`] as [string, string])] }, v.evento_id ?? ''),
+  ].join(''));
+  const el = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
+  el('titulo').maxLength = 160;
+  el('tipo').disabled = comRespostas;
+  // Mostra só o limite que vale para o tipo escolhido
+  const ajustar = () => {
+    el('max_escolhas').closest<HTMLElement>('.campo')!.hidden = el('tipo').value !== 'escolha_multipla';
+    el('max_palavras').closest<HTMLElement>('.campo')!.hidden = el('tipo').value !== 'nuvem_palavras';
+  };
+  el('tipo').addEventListener('change', ajustar);
+  ajustar();
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.reportValidity()) return;
+    const n = (nome: string) => Math.round(Number(el(nome).value));
+    const dados: Record<string, any> = {
+      titulo: el('titulo').value.trim(),
+      evento_id: el('evento_id').value || null,
+      max_escolhas: el('max_escolhas').value ? Math.max(1, n('max_escolhas')) : null,
+      max_palavras: Math.min(10, Math.max(1, n('max_palavras') || 3)),
+    };
+    if (!comRespostas) dados.tipo = el('tipo').value;
+    const { data, error } = linha
+      ? await db.from('enquetes').update(dados).eq('id', linha.id).select('id').single()
+      : await db.from('enquetes').insert(dados).select('id').single();
+    if (error) { aviso(error.message, 'erro'); return; }
+    aviso(linha ? 'Enquete salva.' : 'Enquete criada. Agora cadastre as perguntas.');
+    conduzirEnquete(data.id);
+  });
+}
+
+function editarPergunta(enq: any, p: any | null, ordem: number, temRespostas: boolean) {
+  const nuvem = enq.tipo === 'nuvem_palavras';
+  const form = janela(p ? 'Editar pergunta' : 'Nova pergunta', [
+    campoHtml({ nome: 'texto', rotulo: 'Pergunta', tipo: 'textoLongo', obrigatorio: true }, p?.texto),
+    nuvem ? '' : campoHtml({ nome: 'opcoes', rotulo: 'Alternativas', tipo: 'lista',
+      ajuda: temRespostas ? 'Já há respostas: as alternativas não podem mudar. Reinicie a enquete para apagar as respostas.' : 'Uma por linha, de 2 a 10.' }, p?.opcoes ?? []),
+  ].join(''));
+  const texto = form.elements.namedItem('texto') as HTMLTextAreaElement;
+  const opcoes = form.elements.namedItem('opcoes') as HTMLTextAreaElement | null;
+  texto.maxLength = 300;
+  texto.rows = 2;
+  if (opcoes) opcoes.disabled = temRespostas;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.reportValidity()) return;
+    const dados: Record<string, any> = { texto: texto.value.trim() };
+    if (!nuvem && !temRespostas) {
+      dados.opcoes = opcoes!.value.split('\n').map((s) => s.trim()).filter(Boolean);
+      if (dados.opcoes.length < 2 || dados.opcoes.length > 10) { aviso('Cadastre de 2 a 10 alternativas, uma por linha.', 'erro'); return; }
+    }
+    const { error } = p
+      ? await db.from('perguntas_enquete').update(dados).eq('id', p.id)
+      : await db.from('perguntas_enquete').insert({ enquete_id: enq.id, ordem, opcoes: [], ...dados });
+    if (error) { aviso(error.message, 'erro'); return; }
+    aviso(p ? 'Pergunta salva.' : 'Pergunta adicionada.');
+    conduzirEnquete(enq.id);
+  });
+}
+
+async function conduzirEnquete(id: string) {
+  clearInterval(timerEnquete);
+  const area = $('#area');
+  const [{ data: e, error }, { data: perguntas }, { data: eventos }] = await Promise.all([
+    db.from('enquetes').select('*').eq('id', id).single(),
+    db.from('perguntas_enquete').select('*, respostas_enquete(count)').eq('enquete_id', id).order('ordem').order('criado_em'),
+    db.from('eventos').select('id, titulo, inicio').order('inicio', { ascending: false }),
+  ]);
+  if (error) { aviso(error.message, 'erro'); listarEnquetes(); return; }
+  const P: any[] = perguntas ?? [];
+  const qtd = (p: any) => p.respostas_enquete?.[0]?.count ?? 0;
+  const comRespostas = P.some((p) => qtd(p) > 0);
+  const atual = P.find((p) => p.id === e.pergunta_atual_id);
+  const proxima = P[atual ? P.indexOf(atual) + 1 : 0];
+  const nuvem = (e.tipo as TipoEnquete) === 'nuvem_palavras';
+  const evento = eventos?.find((x) => x.id === e.evento_id);
+  // O QR code e o link dos participantes apontam sempre para o site publicado
+  const site = location.origin.includes('localhost') ? 'https://kmbim.com.br' : location.origin;
+  const linkPart = linkParticipante(e.codigo, site);
+  const linkProj = `${location.origin}/enquete/projecao?t=${e.token_projecao}`;
+
+  const item = (p: any, i: number) => {
+    const naTela = p.id === atual?.id;
+    const [rotulo, tom] = ESTADO_PERGUNTA[p.estado] ?? [p.estado, ''];
+    return `<li class="enq-pergunta" data-id="${p.id}" ${naTela ? 'data-atual' : ''}>
+      <div class="enq-pergunta__cabeca">
+        <span class="enq-pergunta__num">${i + 1}</span>
+        <strong>${esc(p.texto)}</strong>
+        <span class="etiqueta" data-tom="${tom}">${naTela ? 'Na tela · ' : ''}${rotulo}</span>
+        <span class="enq-pergunta__qtd" ${naTela ? 'id="qtd-atual"' : ''}>${respondentes(qtd(p))}</span>
+      </div>
+      ${naTela ? `<div class="enq-ao-vivo" id="ao-vivo"><p class="carregando">Carregando resultado…</p></div>
+        <div class="linha-botoes">
+          ${p.estado === 'aberta'
+            ? '<button type="button" class="botao botao--primario" data-controle="encerrar">Encerrar respostas</button>'
+            : '<button type="button" class="botao botao--contorno" data-controle="reabrir">Reabrir respostas</button>'}
+          ${p.resultado_liberado
+            ? '<button type="button" class="botao botao--contorno" data-controle="ocultar_resultado">Ocultar resultado dos celulares</button>'
+            : '<button type="button" class="botao botao--contorno" data-controle="liberar_resultado">Mostrar resultado nos celulares</button>'}
+        </div>
+        ${nuvem ? '<small>Clique em uma palavra para ocultá-la da projeção e dos celulares; clique de novo para mostrar.</small>' : ''}` : ''}
+      <div class="linha-botoes enq-pergunta__acoes">
+        ${naTela ? '' : `<button type="button" class="botao botao--contorno botao--mini" data-controle="mostrar" data-pergunta="${p.id}">${p.estado === 'aguardando' ? 'Mostrar na tela' : 'Mostrar de novo'}</button>`}
+        <button type="button" class="botao botao--contorno botao--mini" data-editar-pergunta>Editar</button>
+        <button type="button" class="botao botao--contorno botao--mini" data-mover="-1" ${i === 0 ? 'disabled' : ''} aria-label="Mover para cima">↑</button>
+        <button type="button" class="botao botao--contorno botao--mini" data-mover="1" ${i === P.length - 1 ? 'disabled' : ''} aria-label="Mover para baixo">↓</button>
+        <button type="button" class="botao botao--perigo botao--mini" data-excluir-pergunta>Excluir</button>
+      </div>
+    </li>`;
+  };
+
+  area.innerHTML = `
+    <header class="area__cabeca">
+      <div class="enq-titulo">
+        <button type="button" class="link" id="voltar-enquetes">← Todas as enquetes</button>
+        <h2>${esc(e.titulo)}</h2>
+        <p>${esc(rotuloTipo(e.tipo))}${evento ? ` · ${esc(evento.titulo)}` : ''}</p>
+      </div>
+      <div class="linha-botoes">
+        <button type="button" class="botao botao--contorno" id="editar-enquete">Editar dados</button>
+        <button type="button" class="botao botao--contorno" id="duplicar-enquete">Duplicar</button>
+        <button type="button" class="botao botao--perigo" id="excluir-enquete">Excluir</button>
+      </div>
+    </header>
+
+    <section class="caixa enq-acesso">
+      <div class="enq-acesso__qr">${qrCode(linkPart)}</div>
+      <div class="enq-acesso__info">
+        <p class="enq-acesso__codigo">Código <strong>${esc(e.codigo)}</strong>
+          <span class="etiqueta" data-tom="${e.aberta ? 'ok' : ''}">${e.aberta ? 'Entrada aberta' : 'Entrada fechada'}</span></p>
+        <div class="linha-botoes">
+          <button type="button" class="botao ${e.aberta ? 'botao--contorno' : 'botao--cta'}" data-controle="${e.aberta ? 'fechar' : 'abrir'}">${e.aberta ? 'Fechar entrada' : 'Abrir entrada'}</button>
+          <a class="botao botao--primario" href="${esc(linkProj)}" target="_blank" rel="noopener">Abrir projeção</a>
+          <button type="button" class="botao botao--contorno" data-copiar="${esc(linkProj)}">Copiar link da projeção</button>
+          <button type="button" class="botao botao--contorno" data-copiar="${esc(linkPart)}">Copiar link dos participantes</button>
+        </div>
+        <small>Participantes: <code>${esc(linkPart)}</code>. O link da projeção é secreto e abre sem login: compartilhe só com quem vai projetar.</small>
+      </div>
+    </section>
+
+    <section class="enq-perguntas">
+      <header class="area__cabeca"><h3>Perguntas</h3><button type="button" class="botao botao--contorno" id="nova-pergunta">Adicionar pergunta</button></header>
+      ${P.length && !e.aberta ? '<p class="erro">A entrada está fechada: abra a entrada para os participantes conseguirem responder.</p>' : ''}
+      ${P.length ? `<ol class="enq-lista">${P.map(item).join('')}</ol>` : '<div class="vazio"><p>Nenhuma pergunta ainda.</p></div>'}
+      <div class="linha-botoes">
+        ${proxima ? `<button type="button" class="botao botao--cta" data-controle="mostrar" data-pergunta="${proxima.id}">${atual ? 'Próxima pergunta' : 'Mostrar a primeira pergunta'}</button>` : ''}
+        ${atual ? '<button type="button" class="botao botao--contorno" data-controle="limpar_tela">Tirar pergunta da tela</button>' : ''}
+      </div>
+    </section>
+
+    <div class="linha-botoes">
+      <button type="button" class="botao botao--contorno" id="exportar-enquete">Exportar resultados (CSV)</button>
+      <button type="button" class="botao botao--perigo" id="reiniciar-enquete">Reiniciar (apagar respostas)</button>
+    </div>
+    <div id="editor"></div>`;
+
+  $('#voltar-enquetes').addEventListener('click', () => { clearInterval(timerEnquete); listarEnquetes(); });
+  $('#editar-enquete').addEventListener('click', () => editarEnquete(e, eventos ?? [], comRespostas));
+  $('#nova-pergunta').addEventListener('click', () => editarPergunta(e, null, P.reduce((m, p) => Math.max(m, p.ordem + 1), 0), false));
+  $('#duplicar-enquete').addEventListener('click', async () => {
+    const { data: nova, error: erro } = await db.rpc('duplicar_enquete', { p_enquete: e.id });
+    if (erro) { aviso(erro.message, 'erro'); return; }
+    aviso('Enquete duplicada, com código e link de projeção novos.');
+    conduzirEnquete(nova);
+  });
+  $('#excluir-enquete').addEventListener('click', async () => {
+    if (!confirm(`Excluir a enquete "${e.titulo}" com todas as perguntas e respostas? Esta ação não pode ser desfeita.`)) return;
+    const { error: erro } = await db.from('enquetes').delete().eq('id', e.id);
+    if (erro) { aviso(erro.message, 'erro'); return; }
+    aviso('Enquete excluída.');
+    clearInterval(timerEnquete);
+    listarEnquetes();
+  });
+  $('#reiniciar-enquete').addEventListener('click', async () => {
+    if (!confirm('Apagar todas as respostas desta enquete e voltar todas as perguntas para "não mostrada"? Use antes de aplicar a enquete a outra turma.')) return;
+    controlar('reiniciar');
+  });
+  area.querySelectorAll<HTMLButtonElement>('[data-copiar]').forEach((b) => b.addEventListener('click', async () => {
+    aviso(await copiarTexto(b.dataset.copiar!) ? 'Link copiado.' : 'Não foi possível copiar. Tente de novo.');
+  }));
+
+  async function controlar(acao: string, pergunta: string | null = null) {
+    const { error: erro } = await db.rpc('controlar_enquete', { p_enquete: e.id, p_acao: acao, p_pergunta: pergunta });
+    if (erro) { aviso(erro.message, 'erro'); return; }
+    conduzirEnquete(e.id);
+  }
+  area.querySelectorAll<HTMLButtonElement>('[data-controle]').forEach((b) => b.addEventListener('click', () => {
+    b.disabled = true;
+    controlar(b.dataset.controle!, b.dataset.pergunta ?? null);
+  }));
+
+  area.querySelectorAll<HTMLLIElement>('.enq-pergunta').forEach((li) => {
+    const i = P.findIndex((p) => p.id === li.dataset.id);
+    const p = P[i];
+    li.querySelector('[data-editar-pergunta]')!.addEventListener('click', () => editarPergunta(e, p, p.ordem, qtd(p) > 0));
+    li.querySelector('[data-excluir-pergunta]')!.addEventListener('click', async () => {
+      if (!confirm(`Excluir a pergunta "${p.texto}"${qtd(p) ? ` e as ${qtd(p)} resposta(s)` : ''}?`)) return;
+      const { error: erro } = await db.from('perguntas_enquete').delete().eq('id', p.id);
+      if (erro) { aviso(erro.message, 'erro'); return; }
+      conduzirEnquete(e.id);
+    });
+    li.querySelectorAll<HTMLButtonElement>('[data-mover]').forEach((b) => b.addEventListener('click', async () => {
+      const nova = [...P];
+      const j = i + Number(b.dataset.mover);
+      [nova[i], nova[j]] = [nova[j], nova[i]];
+      const res = await Promise.all(nova.map((x, k) => (x.ordem === k ? null : db.from('perguntas_enquete').update({ ordem: k }).eq('id', x.id))));
+      if (res.some((r) => r?.error)) aviso('Não foi possível mudar a ordem.', 'erro');
+      conduzirEnquete(e.id);
+    }));
+  });
+
+  $('#exportar-enquete').addEventListener('click', async () => {
+    const pct = (n: number, total: number) => (total ? `${Math.round((n / total) * 100)}%` : '0%');
+    const linhas: unknown[][] = [];
+    for (const [i, p] of P.entries()) {
+      const { data: r } = await db.rpc('resultado_pergunta_admin', { p_pergunta: p.id });
+      if (!r) continue;
+      if (nuvem) (r as Resultado).palavras.forEach((w) => linhas.push([i + 1, p.texto, w.palavra, w.n, pct(w.n, r.respondentes), r.respondentes, w.oculta ? 'Ocultada' : '']));
+      else p.opcoes.forEach((o: string, k: number) => linhas.push([i + 1, p.texto, o, r.votos[k] ?? 0, pct(r.votos[k] ?? 0, r.respondentes), r.respondentes, '']));
+    }
+    const cab = ['Nº', 'Pergunta', nuvem ? 'Palavra' : 'Alternativa', 'Respostas', '% dos respondentes', 'Respondentes da pergunta', 'Observação'];
+    // Ponto e vírgula e BOM: abre direto no Excel em português com acentos corretos
+    const csv = '﻿' + [cab, ...linhas].map((l) => l.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `enquete-${e.titulo.normalize('NFD').replace(/[^\w]+/g, '-').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  if (!atual) return;
+  // Resultado ao vivo da pergunta na tela; na nuvem, clicar numa palavra oculta ou mostra de novo
+  let ultimo = '';
+  const aoVivo = async () => {
+    if (document.hidden || abaAtual !== 'enquetes') return;
+    const { data: r } = await db.rpc('resultado_pergunta_admin', { p_pergunta: atual.id });
+    const alvo = area.querySelector<HTMLElement>('#ao-vivo');
+    if (!r || !alvo) return;
+    const json = JSON.stringify(r);
+    if (json === ultimo) return;
+    ultimo = json;
+    alvo.innerHTML = nuvem ? htmlNuvem(r.palavras, true) : htmlBarras(atual.opcoes, r);
+    $('#qtd-atual').textContent = respondentes(r.respondentes);
+  };
+  $('#ao-vivo').addEventListener('click', async (ev) => {
+    const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-palavra]');
+    if (!b) return;
+    const palavra = b.dataset.palavra!;
+    const ocultas: string[] = atual.palavras_ocultas ?? [];
+    const novas = ocultas.includes(palavra) ? ocultas.filter((w) => w !== palavra) : [...ocultas, palavra];
+    const { error: erro } = await db.from('perguntas_enquete').update({ palavras_ocultas: novas }).eq('id', atual.id);
+    if (erro) { aviso(erro.message, 'erro'); return; }
+    atual.palavras_ocultas = novas;
+    ultimo = '';
+    aoVivo();
+  });
+  aoVivo();
+  timerEnquete = setInterval(aoVivo, 2000);
 }
 
 // ---------------------------------------------------------------- pedidos
