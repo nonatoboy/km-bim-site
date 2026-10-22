@@ -10,6 +10,7 @@ const INTERVALO = 1500;
 let tela = '';
 let nuvem = '';
 let codigoQr = '';
+let redesenhou = false; // pergunta ou nuvem nova: refaz o ajuste à tela
 
 export function iniciarProjecao() {
   const token = new URLSearchParams(location.search).get('t') ?? '';
@@ -17,6 +18,9 @@ export function iniciarProjecao() {
   $('#tela-cheia').addEventListener('click', alternarTelaCheia);
   document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) alternarTelaCheia(); });
   manterTelaAcesa();
+  addEventListener('resize', ajustarTela);
+  document.addEventListener('fullscreenchange', ajustarTela);
+  document.fonts?.ready.then(ajustarTela);
   const db = supabase();
   const ciclo = async () => {
     const { data, error } = await db.rpc('projecao_enquete', { p_token: token });
@@ -46,7 +50,7 @@ function desenhar(e: EstadoProjecao) {
   if (chave !== tela) {
     tela = chave;
     nuvem = '';
-    $('#palco').innerHTML = !p
+    $('#palco').innerHTML = `<div class="projecao__conteudo">${!p
       ? `<div class="projecao__entrada">
           <div class="projecao__qr">${qrCode(endereco)}</div>
           <div>
@@ -59,14 +63,15 @@ function desenhar(e: EstadoProjecao) {
         </div>`
       : `<span class="rotulo">Pergunta ${p.numero} de ${p.total}</span>
          <h1>${esc(p.texto)}</h1>
-         <div id="resultado"></div>`;
+         <div id="resultado"></div>`}</div>`;
+    redesenhou = true;
   }
-  if (!p) { $('#contagem').textContent = ''; return; }
+  if (!p) { $('#contagem').textContent = ''; ajustarTela(); return; }
   const r = p.resultado ?? { respondentes: 0, votos: [], palavras: [] };
   const alvo = $('#resultado');
   if (e.tipo === 'nuvem_palavras') {
     const nova = JSON.stringify(r.palavras);
-    if (nova !== nuvem) { nuvem = nova; alvo.innerHTML = htmlNuvem(r.palavras); }
+    if (nova !== nuvem) { nuvem = nova; alvo.innerHTML = htmlNuvem(r.palavras); redesenhou = true; }
   } else {
     const barras = alvo.querySelectorAll<HTMLElement>('.res-barras li');
     if (barras.length !== p.opcoes.length) {
@@ -76,6 +81,26 @@ function desenhar(e: EstadoProjecao) {
     } else atualizarBarras(alvo, r.votos, r.respondentes);
   }
   $('#contagem').textContent = `${respondentes(r.respondentes)} · ${p.estado === 'aberta' ? 'respostas abertas' : 'respostas encerradas'}`;
+  if (redesenhou) { redesenhou = false; ajustarTela(); }
+}
+
+/**
+ * Faz o conteúdo caber na tela: com muitas alternativas, pergunta longa ou nuvem grande,
+ * reduz o tamanho do texto (tudo na projeção é medido em em) até não sobrar nada cortado.
+ */
+function ajustarTela() {
+  const palco = $('#palco');
+  const conteudo = palco.querySelector<HTMLElement>('.projecao__conteudo');
+  if (!conteudo) return;
+  const estilo = getComputedStyle(palco);
+  const altura = palco.clientHeight - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom);
+  const largura = palco.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight);
+  let escala = 1;
+  conteudo.style.fontSize = '';
+  while ((conteudo.scrollHeight > altura + 1 || conteudo.scrollWidth > largura + 1) && escala > 0.35) { // +1: arredondamento de subpixel
+    escala -= 0.05;
+    conteudo.style.fontSize = `${escala}em`;
+  }
 }
 
 function atualizarBarras(alvo: HTMLElement, votos: number[], total: number) {
