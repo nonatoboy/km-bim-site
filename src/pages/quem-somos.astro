@@ -103,7 +103,7 @@ const grupos = [
         <ul class="parceiros">
           {parceiros.map((p) => (
             <li>
-              {p.logo && <img src={p.logo} alt="" loading="lazy" />}
+              <div class="parceiros__logo">{p.logo && <img src={p.logo} alt="" loading="lazy" />}</div>
               <strong>{p.site ? <a href={p.site} target="_blank" rel="noopener">{p.nome}</a> : p.nome}</strong>
               {p.descricao && <p class="muted">{p.descricao}</p>}
             </li>
@@ -144,7 +144,10 @@ const grupos = [
   .palestras img { aspect-ratio: 16 / 9; object-fit: cover; width: 100%; }
   .palestras div { display: grid; gap: 6px; padding: 16px; }
   .parceiros { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
-  .parceiros li { display: grid; gap: 8px; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); }
-  .parceiros img { max-height: 48px; width: auto; }
+  .parceiros li { display: flex; flex-direction: column; gap: 10px; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--raio); }
+  /* Área do logo com altura fixa: nomes e textos começam na mesma linha em todos os cartões */
+  .parceiros__logo { height: 56px; display: flex; align-items: center; }
+  .parceiros__logo img { max-height: 48px; max-width: 180px; width: auto; height: auto; object-fit: contain; }
+  .parceiros li p { margin: 0; }
   .chamada { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
 </style>
