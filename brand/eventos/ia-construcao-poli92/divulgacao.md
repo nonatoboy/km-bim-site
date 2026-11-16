@@ -67,3 +67,45 @@ Hoje às 18h! Quem confirmou já tem o link da sala no e-mail (procure por "KM B
 Pessoal, mudança de data na nossa roda de conversa sobre IA: passou para **terça, 17/11, das 18h às 19h30**, pelo Teams.
 Quem já se inscreveu não precisa fazer nada: a inscrição continua valendo e o link da sala é o mesmo. Só atualize a agenda.
 🔗 kmbim.com.br/eventos/ia-construcao-poli92
+
+---
+
+## Lembrete aos inscritos com leitura prévia (segunda, 16/11)
+
+Enviar pelo Outlook, com os e-mails em **Cco** (painel → Inscrições → evento → Exportar → e-mails dos confirmados). As respostas chegam na caixa de quem envia.
+
+**Assunto:** Amanhã, 18h: nossa roda de conversa sobre IA (e uma pergunta rápida)
+
+Olá!
+
+Amanhã, terça-feira, 17 de novembro, às 18h, temos a roda de conversa *IA na rotina da obra e do projeto: o que já funciona*, pelo Microsoft Teams. O link da sala está no e-mail de confirmação da inscrição (remetente: KM BIM Eventos). Entre uns 5 minutos antes para testar áudio e câmera.
+
+Para aquecer a conversa, separei três leituras curtas (opcionais):
+
+1. **Retrato do Brasil:** pesquisa do Confea/Crea, BIM Fórum e ABDI (agosto de 2026) sobre a digitalização da construção. Mostra que a IA aplicada a projeto e planejamento ainda é novidade para a maioria dos profissionais.
+   https://www.confea.org.br/bim-avanca-nos-canteiros-mas-para-maioria-ainda-e-novidade
+2. **Investimento e retorno:** pesquisa da BRG (outubro de 2026, em inglês) com executivos de várias regiões. As empresas estão gastando com IA, as equipes estão mudando mais do que encolhendo, e poucas sabem medir o retorno.
+   https://www.constructiondive.com/news/construction-ai-reshape-teams-replace-jobs/833612/
+3. **Tendências:** mais de 25 especialistas comentam onde a IA está entrando na rotina de obra e projeto em 2026 (Autodesk, em inglês).
+   https://www.autodesk.com/blogs/construction/?p=20937
+
+Se tiver 10 minutos, um teste prático vale mais que as leituras: escolha uma tarefa real desta semana (resumir uma ata, revisar um e-mail difícil, comparar duas propostas, tirar uma dúvida de norma) e peça a uma IA. Depois conte para a turma como foi.
+
+Uma pergunta para eu organizar a conversa. Responda este e-mail em uma ou duas linhas:
+
+- Que caso de uso de IA você quer compartilhar na roda (deu certo ou não)?
+- Ou, se ainda não usa: o que você espera levar desta conversa?
+
+Até amanhã,
+Marcelo Nonato
+
+### Versão WhatsApp (grupo ou individual)
+
+Pessoal, amanhã, *terça, 17/11, às 18h*, é a nossa roda de conversa sobre IA na obra e no projeto, pelo Teams. O link está no e-mail de confirmação (remetente: KM BIM Eventos).
+
+Para aquecer, três leituras curtas:
+1. Pesquisa Confea/BIM Fórum/ABDI sobre digitalização (ago/2026): https://www.confea.org.br/bim-avanca-nos-canteiros-mas-para-maioria-ainda-e-novidade
+2. Investimento em IA x retorno na construção (BRG, out/2026, inglês): https://www.constructiondive.com/news/construction-ai-reshape-teams-replace-jobs/833612/
+3. Tendências de IA na construção em 2026 (Autodesk, inglês): https://www.autodesk.com/blogs/construction/?p=20937
+
+E uma pergunta: que caso de uso de IA você quer contar na roda? Ou, se ainda não usa, o que espera levar da conversa? Responda aqui mesmo.

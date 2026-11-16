@@ -85,3 +85,45 @@ Oi, [nome]! Passando para lembrar da nossa roda de conversa sobre IA e BIM na in
 Enviar por e-mail em Cco (painel → Inscrições → exportar → e-mails dos confirmados):
 
 Hoje às 18h! O link da sala está no e-mail de confirmação (procure por "KM BIM Eventos"). Entre uns 5 minutos antes para testar o áudio. Até mais tarde.
+
+---
+
+## Lembrete aos inscritos com leitura prévia (segunda, 16/11, ou terça, 17/11)
+
+Enviar pelo Outlook, com os e-mails em **Cco** (painel → Inscrições → evento → Exportar → e-mails dos confirmados). As respostas chegam na caixa de quem envia.
+
+**Assunto:** Quarta, 18h: roda de conversa sobre IA e BIM na infraestrutura (e uma pergunta rápida)
+
+Olá!
+
+Na quarta-feira, 18 de novembro, às 18h, nos reencontramos na roda de conversa *IA e BIM em obras de infraestrutura: o que já funciona*, pelo Microsoft Teams. O link da sala está no e-mail de confirmação da inscrição (remetente: KM BIM Eventos). Entre uns 5 minutos antes para testar áudio e câmera.
+
+Para aquecer a conversa, separei três leituras curtas (opcionais):
+
+1. **Retrato do Brasil:** pesquisa do Confea/Crea, BIM Fórum e ABDI (agosto de 2026) sobre BIM e digitalização. Mostra que a IA aplicada a projeto e planejamento ainda é novidade para a maioria dos profissionais.
+   https://www.confea.org.br/bim-avanca-nos-canteiros-mas-para-maioria-ainda-e-novidade
+2. **Investimento e retorno:** pesquisa da BRG (outubro de 2026, em inglês). As empresas estão gastando com IA, as equipes estão mudando mais do que encolhendo, e poucas sabem medir o retorno.
+   https://www.constructiondive.com/news/construction-ai-reshape-teams-replace-jobs/833612/
+3. **IA na infraestrutura:** como a IA está entrando em coordenação de projeto, planejamento e gestão de ativos de infraestrutura (London Build Expo, agosto de 2026, em inglês).
+   https://www.londonbuildexpo.com/news/ai-strengthening-infrastructure-development
+
+Se tiver 10 minutos, um teste prático vale mais que as leituras: escolha uma tarefa real desta semana (resumir um edital ou um memorial, revisar um relatório, levantar perguntas para uma reunião de coordenação) e peça a uma IA. Depois conte para a turma como foi.
+
+Uma pergunta para eu organizar a conversa. Responda este e-mail em uma ou duas linhas:
+
+- Que caso de uso de IA, com ou sem BIM, você quer compartilhar na roda (deu certo ou não)?
+- Ou, se ainda não usa: o que você espera levar desta conversa?
+
+Até quarta,
+Marcelo Nonato
+
+### Versão WhatsApp (individual)
+
+Oi, [nome]! Passando para lembrar da nossa roda de conversa sobre IA e BIM na infraestrutura, *quarta, 18/11, às 18h*, pelo Teams. O link está no e-mail de confirmação (remetente: KM BIM Eventos).
+
+Para aquecer, três leituras curtas:
+1. Pesquisa Confea/BIM Fórum/ABDI sobre BIM e digitalização (ago/2026): https://www.confea.org.br/bim-avanca-nos-canteiros-mas-para-maioria-ainda-e-novidade
+2. Investimento em IA x retorno na construção (BRG, out/2026, inglês): https://www.constructiondive.com/news/construction-ai-reshape-teams-replace-jobs/833612/
+3. IA em projetos de infraestrutura (London Build Expo, ago/2026, inglês): https://www.londonbuildexpo.com/news/ai-strengthening-infrastructure-development
+
+E uma pergunta: que caso de uso de IA você quer contar na roda? Ou, se ainda não usa, o que espera levar da conversa? Pode responder aqui mesmo.
